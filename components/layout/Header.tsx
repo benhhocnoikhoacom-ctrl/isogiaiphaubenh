@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, LayoutDashboard, Settings, UserCircle, LogOut } from "lucide-react";
+import { Building2, LayoutDashboard, Settings, UserCircle, LogOut, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, signIn, signOut } from "next-auth/react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Máy tính Y Khoa", href: "/calculators", icon: Calculator },
   { name: "Appointments", href: "/appointments", icon: Building2 },
   { name: "Patients", href: "/patients", icon: UserCircle },
   { name: "Settings", href: "/settings", icon: Settings, adminOnly: true },
