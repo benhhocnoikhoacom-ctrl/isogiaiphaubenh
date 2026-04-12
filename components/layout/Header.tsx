@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, LayoutDashboard, Settings, UserCircle, LogOut, Calculator } from "lucide-react";
+import { Building2, LayoutDashboard, Settings, UserCircle, LogOut, Calculator, MessageSquarePlus, MessageSquareQuote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, signIn, signOut } from "next-auth/react";
 
@@ -11,6 +11,8 @@ const navigation = [
   { name: "Máy tính Y Khoa", href: "/calculators", icon: Calculator },
   { name: "Appointments", href: "/appointments", icon: Building2 },
   { name: "Patients", href: "/patients", icon: UserCircle },
+  { name: "Góp ý", href: "/feedback", icon: MessageSquarePlus },
+  { name: "Quản lý ý kiến", href: "/admin/feedbacks", icon: MessageSquareQuote, adminOnly: true },
   { name: "Settings", href: "/settings", icon: Settings, adminOnly: true },
 ];
 
