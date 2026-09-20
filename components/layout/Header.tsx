@@ -11,7 +11,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  HardDrive
+  HardDrive,
+  UserCog
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -28,7 +29,10 @@ export function Header() {
   const navigation = [
     { name: "Dashboard Trưởng khoa", href: "/", icon: LayoutDashboard },
     { name: "Đầu việc của tôi", href: "/my-tasks", icon: CheckSquare },
-    ...(isAdmin ? [{ name: "Bảng phân công", href: "/assignment", icon: Users }] : []),
+    ...(isAdmin ? [
+      { name: "Bảng phân công", href: "/assignment", icon: Users },
+      { name: "Quản lý nhân viên", href: "/admin/users", icon: UserCog },
+    ] : []),
   ];
 
   return (

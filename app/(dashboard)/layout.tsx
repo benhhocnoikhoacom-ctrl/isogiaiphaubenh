@@ -13,6 +13,10 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  if (session.user.mustChangePassword) {
+    redirect("/change-password");
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#F7F8F6]">
       <Header />

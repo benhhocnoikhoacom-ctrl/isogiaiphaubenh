@@ -4,12 +4,14 @@ export const ISO_DRIVE_FOLDER_URL = `https://drive.google.com/drive/folders/${IS
 export type UserRole = 'ADMIN' | 'USER';
 
 export interface UserProfile {
-  id: string; // User ID: U001, U002... hoặc email
+  id: string; // User ID: email
   fullName: string;
   role: UserRole;
   title: string; // Trưởng khoa, Bác sĩ, KTV
   email: string;
   phone: string;
+  password?: string;
+  mustChangePassword?: boolean;
   active: boolean;
   createdAt?: string;
   updatedAt?: string;
