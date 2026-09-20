@@ -11,9 +11,6 @@ import {
   EyeOff, 
   ArrowRight, 
   AlertCircle, 
-  CheckCircle2, 
-  User, 
-  KeyRound,
   Hospital
 } from "lucide-react";
 
@@ -35,7 +32,7 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("isogpb@2026");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -69,7 +66,7 @@ function LoginForm() {
       });
 
       if (res?.error) {
-        setErrorMsg("Email hoặc mật khẩu không chính xác. Mật khẩu mặc định là isogpb@2026.");
+        setErrorMsg("Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.");
         setIsLoading(false);
       } else {
         router.push(callbackUrl);
@@ -172,6 +169,7 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mật khẩu"
+                  autoComplete="current-password"
                   className="block w-full rounded-md border border-[#DDE3E0] bg-[#F7F8F6] pl-9 pr-10 py-2 text-sm text-[#12211F] focus:bg-white focus:border-[#1F5C55] focus:outline-none focus:ring-1 focus:ring-[#1F5C55] transition-all"
                   required
                 />
@@ -187,14 +185,6 @@ function LoginForm() {
                   )}
                 </button>
               </div>
-            </div>
-
-            {/* Password Notice / Helper */}
-            <div className="flex items-start gap-2 rounded-md bg-[#E3EFEC] p-2.5 text-[11px] text-[#1F5C55]">
-              <KeyRound className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              <span>
-                Mật khẩu mặc định là: <code className="font-mono font-bold text-[#16443F] bg-white/70 px-1 py-0.5 rounded">isogpb@2026</code> (hoặc <code className="font-mono font-bold text-[#16443F] bg-white/70 px-1 py-0.5 rounded">123456</code>).
-              </span>
             </div>
 
             {/* Submit Button */}
