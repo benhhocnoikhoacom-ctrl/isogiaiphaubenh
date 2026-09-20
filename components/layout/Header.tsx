@@ -129,19 +129,19 @@ export function Header() {
 
           {session ? (
             <button
-              onClick={() => signOut()}
+              onClick={() => signOut({ callbackUrl: "/login" })}
               className="inline-flex h-9 items-center justify-center rounded-md border border-[#DDE3E0] bg-white px-3 py-1.5 text-xs font-medium text-[#12211F] hover:bg-[#F7F8F6] transition-colors shadow-2xs"
             >
               <LogOut className="mr-1.5 h-3.5 w-3.5 text-[#5C6B68]" />
               Đăng xuất
             </button>
           ) : (
-            <button
-              onClick={() => signIn("google")}
+            <Link
+              href="/login"
               className="inline-flex h-9 items-center justify-center rounded-md bg-[#1F5C55] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#16443F] transition-colors shadow-2xs"
             >
-              Đăng nhập Gmail
-            </button>
+              Đăng nhập
+            </Link>
           )}
 
           {/* Mobile menu button */}
