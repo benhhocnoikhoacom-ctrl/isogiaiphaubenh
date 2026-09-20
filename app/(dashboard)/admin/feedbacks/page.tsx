@@ -9,7 +9,7 @@ export default async function AdminFeedbacksPage() {
   const session = await auth();
 
   // Protect this route from non-admins
-  if (session?.user?.role !== "admin") {
+  if (session?.user?.role?.toUpperCase() !== "ADMIN") {
     redirect("/"); 
   }
 

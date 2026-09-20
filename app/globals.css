@@ -1,26 +1,63 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F7F8F6;
+  --foreground: #12211F;
+  --primary: #1F5C55;
+  --primary-deep: #16443F;
+  --primary-tint: #E3EFEC;
+  --card: #FFFFFF;
+  --line: #DDE3E0;
+  --muted: #5C6B68;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-primary: var(--primary);
+  --color-primary-deep: var(--primary-deep);
+  --color-primary-tint: var(--primary-tint);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Status Badges */
+.badge-completed {
+  background-color: #E3EFEC;
+  color: #1F5C55;
+  border: 1px solid #B8D5CE;
+}
+
+.badge-pending {
+  background-color: #E4EEF8;
+  color: #1F4E79;
+  border: 1px solid #B9D0E8;
+}
+
+.badge-due-soon {
+  background-color: #FDF0DC;
+  color: #8A5108;
+  border: 1px solid #EFD3A3;
+}
+
+.badge-overdue {
+  background-color: #FBE6E4;
+  color: #B3261E;
+  border: 1px solid #F0BDB8;
+}
+
+.badge-not-due {
+  background-color: #EEF0EF;
+  color: #59665F;
+  border: 1px solid #D6DBD8;
 }

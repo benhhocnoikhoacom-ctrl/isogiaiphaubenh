@@ -6,7 +6,7 @@ export default async function SettingsPage() {
   const session = await auth();
 
   // Protect this route from non-admins
-  if (session?.user?.role !== "admin") {
+  if (session?.user?.role?.toUpperCase() !== "ADMIN") {
     redirect("/"); // Or to an unauthorized page
   }
 

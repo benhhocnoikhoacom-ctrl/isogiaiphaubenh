@@ -44,7 +44,7 @@ export async function submitFeedbackAction(
 export async function updateFeedbackStatusAction(id: string, newStatus: "new" | "reviewed" | "resolved") {
   try {
     const session = await auth();
-    if (session?.user?.role !== "admin") {
+    if (session?.user?.role?.toUpperCase() !== "ADMIN") {
       throw new Error("Unauthorized");
     }
 
