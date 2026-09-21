@@ -36,6 +36,7 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [activeFilter, setActiveFilter] = useState<"ALL" | TaskStatusCode>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [rejectionModalTask, setRejectionModalTask] = useState<TaskRecord | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -51,7 +52,10 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
       task.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.assigneeName.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
+    const matchesStaff = selectedStaff
+      ? (task.assigneeName.toLowerCase() === selectedStaff.toLowerCase() || task.assigneeId === selectedStaff)
+      : true;
+    return matchesFilter && matchesSearch && matchesStaff;
   });
 
   // Bảng điểm nghẽn: Chỉ OVERDUE và DUE_SOON
@@ -394,55 +398,71 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {staffPerformance.map(staff => (
-            <div key={staff.userId} className="p-4 rounded-lg border border-[#DDE3E0] bg-[#F7F8F6] flex flex-col justify-between gap-3">
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-sm text-[#12211F]">{staff.fullName}</span>
-                  <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-[#DDE3E0] text-[#5C6B68]">
-                    {staff.title}
-                  </span>
+          {staffPerformance.map(staff => {
+            const isSelected = selectedStaff === staff.fullName;
+            return (
+              <button
+                key={staff.userId}
+                onClick={() => setSelectedStaff(isSelected ? null : staff.fullName)}
+                className={`p-4 rounded-lg border text-left transition-all relative flex flex-col justify-between gap-3 cursor-pointer ${
+                  isSelected 
+                    ? "ring-2 ring-[#1F5C55] bg-[#E3EFEC] border-[#1F5C55] shadow-xs" 
+                    : "border-[#DDE3E0] bg-[#F7F8F6] hover:bg-white hover:border-[#1F5C55] hover:shadow-2xs"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`font-bold text-sm ${isSelected ? "text-[#1F5C55]" : "text-[#12211F]"}`}>{staff.fullName}</span>
+                    <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-[#DDE3E0] text-[#5C6B68]">
+                      {staff.title}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[#5C6B68] mt-0.5">{staff.email}</div>
                 </div>
-                <div className="text-[11px] text-[#5C6B68] mt-0.5">{staff.email}</div>
-              </div>
 
-              <div className="space-y-1.5 pt-2 border-t border-[#DDE3E0] text-xs">
-                <div className="flex justify-between">
-                  <span className="text-[#5C6B68]">Được giao:</span>
-                  <span className="font-mono font-semibold">{staff.assignedCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#1F5C55]">Đã xong:</span>
-                  <span className="font-mono font-semibold text-[#1F5C55]">{staff.completedCount}</span>
-                </div>
-                {staff.overdueCount > 0 && (
+                <div className="space-y-1.5 pt-2 border-t border-[#DDE3E0] text-xs">
                   <div className="flex justify-between">
-                    <span className="text-[#B3261E]">Quá hạn:</span>
-                    <span className="font-mono font-bold text-[#B3261E]">{staff.overdueCount}</span>
+                    <span className="text-[#5C6B68]">Được giao:</span>
+                    <span className="font-mono font-semibold">{staff.assignedCount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#1F5C55]">Đã xong:</span>
+                    <span className="font-mono font-semibold text-[#1F5C55]">{staff.completedCount}</span>
+                  </div>
+                  {staff.overdueCount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-[#B3261E]">Quá hạn:</span>
+                      <span className="font-mono font-bold text-[#B3261E]">{staff.overdueCount}</span>
+                    </div>
+                  )}
+                  {staff.pendingCount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-[#1F4E79]">Chờ duyệt:</span>
+                      <span className="font-mono font-semibold text-[#1F4E79]">{staff.pendingCount}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[11px] font-semibold mb-1">
+                    <span>Hoàn thành</span>
+                    <span className="font-mono">{staff.rate}%</span>
+                  </div>
+                  <div className="w-full bg-white h-1.5 rounded-full overflow-hidden border border-[#DDE3E0]">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ${staff.overdueCount > 0 ? "bg-[#B3261E]" : "bg-[#1F5C55]"}`}
+                      style={{ width: `${staff.rate}%` }}
+                    />
+                  </div>
+                </div>
+                {isSelected && (
+                  <div className="text-[10px] font-semibold text-[#1F5C55] mt-1 text-center bg-white py-0.5 rounded border border-[#B8D5CE]">
+                    ✓ Đang lọc theo nhân sự này (Bấm để hủy)
                   </div>
                 )}
-                {staff.pendingCount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#1F4E79]">Chờ duyệt:</span>
-                    <span className="font-mono font-semibold text-[#1F4E79]">{staff.pendingCount}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] font-semibold mb-1">
-                  <span>Hoàn thành</span>
-                  <span className="font-mono">{staff.rate}%</span>
-                </div>
-                <div className="w-full bg-white h-1.5 rounded-full overflow-hidden border border-[#DDE3E0]">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-300 ${staff.overdueCount > 0 ? "bg-[#B3261E]" : "bg-[#1F5C55]"}`}
-                    style={{ width: `${staff.rate}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -502,6 +522,20 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
             </div>
           </div>
         </div>
+
+        {selectedStaff && (
+          <div className="flex items-center justify-between bg-[#E3EFEC] border border-[#B8D5CE] px-3.5 py-2 rounded-lg mb-4 text-xs">
+            <span className="text-[#1F5C55]">
+              Đang lọc theo nhân sự: <strong className="font-bold text-[#12211F]">{selectedStaff}</strong> (Có {filteredTasks.length} đầu việc)
+            </span>
+            <button
+              onClick={() => setSelectedStaff(null)}
+              className="text-[#B3261E] font-semibold hover:underline cursor-pointer"
+            >
+              ✕ Bỏ lọc (Hiện toàn bộ khoa)
+            </button>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">

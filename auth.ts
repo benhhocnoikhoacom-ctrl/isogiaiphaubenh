@@ -40,7 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               return {
                 id: emailLower,
                 email: emailLower,
-                name: emailLower === "bsluongdinhtrung@gmail.com" ? "BS. Lương Đình Trung" : "BS. Đào Thị Nguyệt",
+                name: emailLower === "bsluongdinhtrung@gmail.com" ? "Lương Đình Trung" : "Đào Thị Nguyệt",
                 role: "ADMIN",
                 title: "Trưởng khoa",
                 mustChangePassword: false,
@@ -87,7 +87,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return {
               id: emailLower,
               email: emailLower,
-              name: emailLower === "bsluongdinhtrung@gmail.com" ? "BS. Lương Đình Trung" : "BS. Đào Thị Nguyệt",
+              name: emailLower === "bsluongdinhtrung@gmail.com" ? "Lương Đình Trung" : "Đào Thị Nguyệt",
               role: "ADMIN",
               title: "Trưởng khoa",
               mustChangePassword: false,

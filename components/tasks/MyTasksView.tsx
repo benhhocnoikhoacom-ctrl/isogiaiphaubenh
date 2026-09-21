@@ -47,11 +47,21 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
   const userEmail = session?.user?.email?.toLowerCase() || "";
   const userName = session?.user?.name || "Nhân viên";
 
+  // Kiểm tra công việc thuộc về người dùng đang đăng nhập
+  const isMyTask = (t: TaskRecord) => {
+    if (userEmail && t.assigneeId && t.assigneeId.toLowerCase() === userEmail) {
+      return true;
+    }
+    const cleanAssignee = (t.assigneeName || "").toLowerCase().replace(/^(bs\.|ktv\.|bác sĩ|trưởng khoa)\s*/i, "").trim();
+    const cleanUser = (userName || "").toLowerCase().replace(/^(bs\.|ktv\.|bác sĩ|trưởng khoa)\s*/i, "").trim();
+    return cleanAssignee.length > 0 && (cleanAssignee.includes(cleanUser) || cleanUser.includes(cleanAssignee));
+  };
+
   // Lọc việc của tôi
   const myTasks = tasks.filter(t => {
     if (viewScope === "ALL") return true;
     if (!userEmail) return true; // Chưa đăng nhập thì xem tất cả
-    return t.assigneeName.toLowerCase().includes(userName.toLowerCase());
+    return isMyTask(t);
   });
 
   async function handleSubmitCompletion(e: React.FormEvent) {
@@ -191,7 +201,7 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
                   : "text-[#5C6B68] hover:bg-[#F7F8F6]"
               }`}
             >
-              Việc của tôi ({tasks.filter(t => t.assigneeName.toLowerCase().includes(userName.toLowerCase())).length})
+              Việc của tôi ({tasks.filter(isMyTask).length})
             </button>
             <button
               onClick={() => setViewScope("ALL")}

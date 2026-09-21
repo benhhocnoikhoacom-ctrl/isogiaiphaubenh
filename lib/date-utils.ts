@@ -133,18 +133,48 @@ export function calculateDefaultDueDate(item: WorkItem, currentMonthPeriod: stri
       };
     }
 
-    // Nếu là hàng tháng: hạn rà soát của kỳ là ngày 03, 05 hoặc 10 của kỳ hiện tại
+    // Nếu là hàng tháng: "Chốt rà soát trước ngày 03/05/10 của tháng kế tiếp"
+    let nextMonth = month + 1;
+    let nextYear = year;
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear += 1;
+    }
     const targetDay = item.dueRule.includes("03") ? 3 : (item.dueRule.includes("10") ? 10 : 5);
     return {
       period: currentMonthPeriod,
-      dueDate: `${year}-${String(month).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`,
+      dueDate: `${nextYear}-${String(nextMonth).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`,
     };
   }
 
   // Mixed hoặc Event
+  if (item.dueRule.includes("30/11")) {
+    return {
+      period: `${year}`,
+      dueDate: `${year}-11-30`,
+    };
+  }
+
+  if (item.dueRule.includes("quý")) {
+    const currentQuarter = Math.ceil(month / 3);
+    const nextQuarterFirstMonth = currentQuarter * 3 + 1;
+    const targetYear = nextQuarterFirstMonth > 12 ? year + 1 : year;
+    const targetMonth = nextQuarterFirstMonth > 12 ? 1 : nextQuarterFirstMonth;
+    return {
+      period: `${year}-Q${currentQuarter}`,
+      dueDate: `${targetYear}-${String(targetMonth).padStart(2, "0")}-05`,
+    };
+  }
+
+  let nextMonth = month + 1;
+  let nextYear = year;
+  if (nextMonth > 12) {
+    nextMonth = 1;
+    nextYear += 1;
+  }
   const targetDay = item.dueRule.includes("03") ? 3 : (item.dueRule.includes("10") ? 10 : 5);
   return {
     period: currentMonthPeriod,
-    dueDate: `${year}-${String(month).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`,
+    dueDate: `${nextYear}-${String(nextMonth).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`,
   };
 }
