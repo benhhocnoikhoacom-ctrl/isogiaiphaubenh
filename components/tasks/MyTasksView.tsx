@@ -170,11 +170,11 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
           <div className="flex items-center gap-2.5">
             <Info className="h-5 w-5 text-[#8A5108] shrink-0" />
             <p className="text-xs text-[#8A5108]">
-              Bạn đang xem ở chế độ Khách. Hãy <strong>Đăng nhập với Google</strong> để hệ thống tự lọc danh sách việc của riêng bạn.
+              Bạn đang xem ở chế độ Khách. Hãy <strong>Đăng nhập</strong> để hệ thống tự lọc danh sách việc của riêng bạn.
             </p>
           </div>
           <button
-            onClick={() => signIn("google")}
+            onClick={() => window.location.href = "/login"}
             className="px-3.5 py-1.5 rounded-md bg-[#1F5C55] text-white text-xs font-semibold hover:bg-[#16443F] shrink-0"
           >
             Đăng nhập ngay

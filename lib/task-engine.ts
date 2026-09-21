@@ -9,137 +9,20 @@ export function clearTasksCache() {
   memoryTasksCache = null;
 }
 
-/**
- * Lấy ngày hôm nay theo múi giờ Việt Nam (UTC+7) định dạng YYYY-MM-DD
- */
-export function getVietnamToday(): string {
-  const now = new Date();
-  const vnTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
-  const y = vnTime.getFullYear();
-  const m = String(vnTime.getMonth() + 1).padStart(2, "0");
-  const d = String(vnTime.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+export {
+  getVietnamToday,
+  getCurrentMonthPeriod,
+  parseDateToYMD,
+  calculateTaskStatus,
+  calculateDefaultDueDate,
+} from "./date-utils";
 
-export function getCurrentMonthPeriod(): string {
-  const now = new Date();
-  const vnTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
-  const y = vnTime.getFullYear();
-  const m = String(vnTime.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
-}
-
-/**
- * Tính toán trạng thái 4 cờ chuẩn ISO:
- * NOT_DUE / DUE_SOON / PENDING_APPROVAL / COMPLETED / OVERDUE
- */
-export function calculateTaskStatus(
-  dueDate: string,
-  completedDate?: string,
-  reminderDays: number = 3,
-  approvalRequired: boolean = false,
-  approvedAt?: string
-): TaskStatusCode {
-  if (completedDate) {
-    if (approvalRequired) {
-      return approvedAt ? "COMPLETED" : "PENDING_APPROVAL";
-    }
-    return "COMPLETED";
-  }
-
-  const today = getVietnamToday();
-  const due = dueDate.slice(0, 10);
-
-  if (today > due) {
-    return "OVERDUE";
-  }
-
-  // Tính ngày nhắc trước: dueDate - reminderDays
-  const dueTime = new Date(due).getTime();
-  const reminderTime = dueTime - reminderDays * 24 * 60 * 60 * 1000;
-  const reminderDateStr = new Date(reminderTime).toISOString().slice(0, 10);
-
-  if (today >= reminderDateStr) {
-    return "DUE_SOON";
-  }
-
-  return "NOT_DUE";
-}
-
-/**
- * Tính ngày đến hạn mặc định theo quy tắc trong WORK_ITEMS
- */
-export function calculateDefaultDueDate(item: WorkItem, currentMonthPeriod: string): { period: string; dueDate: string } {
-  const [yearStr, monthStr] = currentMonthPeriod.split("-");
-  const year = parseInt(yearStr, 10);
-  const month = parseInt(monthStr, 10); // 1-12
-
-  if (item.frequency === "Daily") {
-    const today = getVietnamToday();
-    return {
-      period: today,
-      dueDate: today
-    };
-  }
-
-  if (item.frequency === "Annual") {
-    let dueMonth = 11;
-    let dueDay = 30;
-    if (item.dueRule.includes("31/10")) {
-      dueMonth = 10;
-      dueDay = 31;
-    } else if (item.dueRule.includes("15/12")) {
-      dueMonth = 12;
-      dueDay = 15;
-    }
-    const dueStr = `${year}-${String(dueMonth).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`;
-    return {
-      period: `${year}`,
-      dueDate: dueStr
-    };
-  }
-
-  if (item.frequency === "Periodic") {
-    // Nếu là theo quý
-    if (item.dueRule.includes("quý")) {
-      const currentQuarter = Math.ceil(month / 3);
-      const nextQuarterFirstMonth = currentQuarter * 3 + 1;
-      const targetYear = nextQuarterFirstMonth > 12 ? year + 1 : year;
-      const targetMonth = nextQuarterFirstMonth > 12 ? 1 : nextQuarterFirstMonth;
-      const targetDay = item.dueRule.includes("10") ? 10 : 5;
-
-      return {
-        period: `${year}-Q${currentQuarter}`,
-        dueDate: `${targetYear}-${String(targetMonth).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`
-      };
-    }
-
-    // Nếu là hàng tháng: chốt rà soát trước ngày 03 hoặc 05 của tháng kế tiếp
-    let nextMonth = month + 1;
-    let nextYear = year;
-    if (nextMonth > 12) {
-      nextMonth = 1;
-      nextYear += 1;
-    }
-    const targetDay = item.dueRule.includes("03") ? 3 : (item.dueRule.includes("10") ? 10 : 5);
-    return {
-      period: currentMonthPeriod,
-      dueDate: `${nextYear}-${String(nextMonth).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`
-    };
-  }
-
-  // Mixed hoặc Event
-  let nextMonth = month + 1;
-  let nextYear = year;
-  if (nextMonth > 12) {
-    nextMonth = 1;
-    nextYear += 1;
-  }
-  return {
-    period: currentMonthPeriod,
-    dueDate: `${nextYear}-${String(nextMonth).padStart(2, "0")}-05`
-  };
-}
+import {
+  getVietnamToday,
+  getCurrentMonthPeriod,
+  calculateTaskStatus,
+  calculateDefaultDueDate,
+} from "./date-utils";
 
 /**
  * Tự động đồng bộ và sinh các task định kỳ cho kỳ hiện tại nếu chưa tồn tại

@@ -1,4 +1,5 @@
 import { UserProfile, WorkItem, TaskRecord } from "@/types/iso";
+import { calculateDefaultDueDate, calculateTaskStatus } from "./date-utils";
 
 export const FALLBACK_USERS: UserProfile[] = [
   {
@@ -623,18 +624,20 @@ export const FALLBACK_WORK_ITEMS: WorkItem[] = [
  */
 export function generateFallbackTasks(period: string): TaskRecord[] {
   return FALLBACK_WORK_ITEMS.map((item) => {
+    const { dueDate, period: taskPeriod } = calculateDefaultDueDate(item, period);
+    const status = calculateTaskStatus(dueDate, undefined, item.reminderDays, item.approvalRequired);
     return {
-      taskId: `${item.itemId}_${period}`,
+      taskId: `${item.itemId}_${taskPeriod}`,
       itemId: item.itemId,
       itemCode: item.itemCode,
       itemName: item.itemName,
-      period,
-      dueDate: `${period}-05`,
+      period: taskPeriod,
+      dueDate,
       assigneeId: item.assigneeId,
       assigneeName: item.assigneeName,
       reviewerId: item.reviewerId,
       reviewerName: item.reviewerName,
-      status: "NOT_DUE",
+      status,
       evidenceRequired: item.evidenceRequired,
       approvalRequired: item.approvalRequired,
       priority: item.priority,

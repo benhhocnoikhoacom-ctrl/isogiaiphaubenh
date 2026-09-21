@@ -20,6 +20,7 @@ import {
 import { TaskRecord, DashboardStats, StaffPerformance, TaskStatusCode, ISO_DRIVE_FOLDER_URL } from "@/types/iso";
 import { approveTask, rejectTask } from "@/app/actions/task-actions";
 import { useSession } from "next-auth/react";
+import { getVietnamToday, parseDateToYMD } from "@/lib/date-utils";
 
 interface Props {
   initialTasks: TaskRecord[];
@@ -30,6 +31,7 @@ interface Props {
 
 export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformance, currentPeriod }: Props) {
   const { data: session } = useSession();
+  const today = getVietnamToday();
   const [tasks, setTasks] = useState<TaskRecord[]>(initialTasks);
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [activeFilter, setActiveFilter] = useState<"ALL" | TaskStatusCode>("ALL");
@@ -347,9 +349,16 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                       <div className="font-semibold text-[#12211F]">{t.itemName}</div>
                       <div className="text-[11px] text-[#5C6B68]">Kỳ: {t.period}</div>
                     </td>
-                    <td className="py-3 px-3 font-medium text-[#12211F]">{t.assigneeName}</td>
-                    <td className="py-3 px-3 font-mono font-semibold text-[#B3261E]">{t.dueDate}</td>
-                    <td className="py-3 px-3">{getStatusBadge(t.status)}</td>
+                    <td className="py-3 px-3 font-mono">
+                      <div className={t.status === "OVERDUE" ? "font-bold text-[#B3261E]" : "font-semibold text-[#8A5108]"}>
+                        {t.dueDate}
+                      </div>
+                      {t.status === "OVERDUE" && (
+                        <span className="inline-block mt-1 text-[10px] font-semibold text-[#B3261E] bg-[#FBE6E4] px-1.5 py-0.5 rounded border border-[#F0BDB8]">
+                          Trễ {Math.max(1, Math.floor((new Date(today).getTime() - new Date(parseDateToYMD(t.dueDate)).getTime()) / (24 * 3600 * 1000)))} ngày
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-3 text-right">
                       {t.externalLink ? (
                         <a
@@ -519,8 +528,14 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                       </div>
                     )}
                   </td>
-                  <td className="py-3 px-3 font-medium text-[#12211F]">{t.assigneeName}</td>
-                  <td className="py-3 px-3 font-mono text-[#5C6B68]">{t.dueDate}</td>
+                  <td className="py-3 px-3 font-mono text-[#5C6B68]">
+                    <div>{t.dueDate}</div>
+                    {t.status === "OVERDUE" && (
+                      <span className="inline-block mt-0.5 text-[10px] font-semibold text-[#B3261E]">
+                        (Trễ {Math.max(1, Math.floor((new Date(today).getTime() - new Date(parseDateToYMD(t.dueDate)).getTime()) / (24 * 3600 * 1000)))} ngày)
+                      </span>
+                    )}
+                  </td>
                   <td className="py-3 px-3">{getStatusBadge(t.status)}</td>
                   <td className="py-3 px-3">
                     {t.evidenceUrl ? (
