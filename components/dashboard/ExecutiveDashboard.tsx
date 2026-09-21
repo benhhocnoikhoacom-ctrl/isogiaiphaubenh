@@ -58,8 +58,14 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
     return matchesFilter && matchesSearch && matchesStaff;
   });
 
-  // Bảng điểm nghẽn: Chỉ OVERDUE và DUE_SOON
-  const bottleneckTasks = tasks.filter(t => t.status === "OVERDUE" || t.status === "DUE_SOON");
+  // Bảng điểm nghẽn: Chỉ OVERDUE và DUE_SOON (Ưu tiên Quá hạn lên đầu, hạn sớm nhất xếp trước)
+  const bottleneckTasks = tasks
+    .filter(t => t.status === "OVERDUE" || t.status === "DUE_SOON")
+    .sort((a, b) => {
+      if (a.status === "OVERDUE" && b.status !== "OVERDUE") return -1;
+      if (a.status !== "OVERDUE" && b.status === "OVERDUE") return 1;
+      return a.dueDate.localeCompare(b.dueDate);
+    });
 
   // Danh sách chờ duyệt
   const pendingTasks = tasks.filter(t => t.status === "PENDING_APPROVAL");
@@ -348,11 +354,19 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
               <tbody className="divide-y divide-[#DDE3E0]">
                 {bottleneckTasks.map(t => (
                   <tr key={t.taskId} className="hover:bg-[#F7F8F6] transition-colors">
+                    {/* 1. Mã */}
                     <td className="py-3 px-3 font-mono font-bold text-[#1F5C55]">{t.itemCode}</td>
+                    
+                    {/* 2. Đầu việc quản lý */}
                     <td className="py-3 px-3">
                       <div className="font-semibold text-[#12211F]">{t.itemName}</div>
                       <div className="text-[11px] text-[#5C6B68]">Kỳ: {t.period}</div>
                     </td>
+
+                    {/* 3. Phụ trách */}
+                    <td className="py-3 px-3 font-medium text-[#12211F]">{t.assigneeName}</td>
+
+                    {/* 4. Hạn hoàn thành */}
                     <td className="py-3 px-3 font-mono">
                       <div className={t.status === "OVERDUE" ? "font-bold text-[#B3261E]" : "font-semibold text-[#8A5108]"}>
                         {t.dueDate}
@@ -363,6 +377,11 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                         </span>
                       )}
                     </td>
+
+                    {/* 5. Trạng thái */}
+                    <td className="py-3 px-3">{getStatusBadge(t.status)}</td>
+
+                    {/* 6. Thao tác */}
                     <td className="py-3 px-3 text-right">
                       {t.externalLink ? (
                         <a
