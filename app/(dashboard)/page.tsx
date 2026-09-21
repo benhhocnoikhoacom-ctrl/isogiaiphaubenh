@@ -3,6 +3,8 @@ import { adminDb } from "@/lib/firebase-admin";
 import { computeDashboardStats, computeStaffPerformance, getCurrentMonthPeriod, syncTasksForCurrentPeriod } from "@/lib/task-engine";
 import { UserProfile } from "@/types/iso";
 
+import { FALLBACK_USERS } from "@/lib/fallback-data";
+
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
@@ -11,12 +13,18 @@ export default async function DashboardPage() {
   // 1. Tự động đồng bộ và sinh các task định kỳ cho kỳ hiện tại
   const tasks = await syncTasksForCurrentPeriod();
 
-  // 2. Lấy danh sách nhân viên
-  const usersSnap = await adminDb.collection("iso_users").where("active", "==", true).get();
-  const users: UserProfile[] = usersSnap.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  } as UserProfile));
+  // 2. Lấy danh sách nhân viên an toàn
+  let users: UserProfile[] = [];
+  try {
+    const usersSnap = await adminDb.collection("iso_users").where("active", "==", true).get();
+    users = usersSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as UserProfile));
+  } catch (error) {
+    console.error("Error loading users from Firestore, using fallback:", error);
+    users = FALLBACK_USERS;
+  }
 
   // 3. Tính toán stats và performance
   const stats = computeDashboardStats(tasks);
