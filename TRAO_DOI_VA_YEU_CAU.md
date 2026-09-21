@@ -70,6 +70,16 @@ Trong danh mục 30 đầu việc của khoa, **BS. Đào Thị Nguyệt** trự
 - Khi bấm vào thẻ của BS. Đào Thị Nguyệt trên Dashboard: Danh sách bảng công việc bên dưới phải lọc ra đúng **2 đầu việc này**.
 - Khi BS. Đào Thị Nguyệt đăng nhập vào trang "Đầu việc của tôi" (`/my-tasks`): Mục "Việc của tôi" phải hiển thị đúng **2 đầu việc**, tuyệt đối không được hiện 0.
 
+### F. Quy cách Bảng Điểm nghẽn (Bottleneck List - Quá hạn & Sắp đến hạn)
+- **Đúng 6 cột hiển thị chuẩn:**
+  1. `Mã` (Mã đầu việc)
+  2. `Đầu việc quản lý` (Tên việc + Kỳ)
+  3. `Phụ trách` (Tên người phụ trách)
+  4. `Hạn hoàn thành` (Ngày hạn + Nhãn `(Trễ X ngày)` đỏ nếu Quá hạn)
+  5. `Trạng thái` (Huy hiệu Quá hạn / Sắp đến hạn)
+  6. `Thao tác` (Nút Mở hệ thống / Đôn đốc NV)
+- **Quy tắc sắp xếp (Sorting):** Ưu tiên công việc Quá hạn (`OVERDUE`) lên trên đầu, trong cùng trạng thái thì công việc có hạn sớm nhất (trễ nhiều nhất) đứng trước.
+
 ---
 
 ## 3. Nguyên tắc Lập trình & Sửa Code Bắt buộc
