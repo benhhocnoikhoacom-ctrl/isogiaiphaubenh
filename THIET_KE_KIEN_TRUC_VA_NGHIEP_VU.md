@@ -107,9 +107,16 @@
 
 ### 1. Dashboard Tổng quan (`/`)
 - Mọi thành viên đều xem được.
-- **Top Bar:** 4 thẻ KPI (Quá hạn, Sắp đến hạn, Đã hoàn thành, Tỷ lệ tuân thủ %).
-- **Bảng Điểm nghẽn:** Đúng 6 cột chuẩn (`Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành (kèm số ngày trễ)`, `Trạng thái`, `Thao tác`). Ưu tiên việc Quá hạn lên trên đầu.
+- **Top Bar:** 4 thẻ KPI (Quá hạn, Sắp đến hạn, Đã hoàn thành, Tỷ lệ tuân thủ %). Thanh Header trên cùng được dọn sạch, loại bỏ hoàn toàn các link module lẻ để giữ giao diện chuẩn mực, tinh gọn.
+- **Bảng Điểm nghẽn:** Đúng 6 cột chuẩn (`Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành (kèm số ngày trễ)`, `Trạng thái`, `Thao tác` có nút xem minh chứng trực tiếp). Ưu tiên việc Quá hạn lên trên đầu.
 - **Thẻ Tiến độ Nhân sự:** Thống kê khối lượng từng người, bấm vào lọc ra ngay công việc của người đó (BS. Đào Thị Nguyệt ra đúng 2 việc).
+- **Bảng 30 Đầu việc Quản lý Chất lượng (ISO 15189):**
+  - Cấu trúc các cột: `Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành`, `Trạng thái`, `Minh chứng`, `Thao tác`, và **cột cuối cùng là `Link ngoài`**.
+  - **Cột Link ngoài:**
+    - Đầu việc đã có link: Hiển thị nút **"Mở link"** chuyển đến hệ thống chuyên dụng (tab mới).
+    - Với tài khoản Admin: Có nút **Sửa link (✏️)** và **Xóa link (🗑️)** trực tiếp trên từng dòng.
+    - Đầu việc chưa có link: Admin thấy nút **`+ Gắn link`**.
+    - **Cơ chế Module động (Zero Code Change):** Khi khoa có thêm bất kỳ module/phần mềm mới nào (như LIS/HIS, quản lý sự cố mới), Trưởng khoa chỉ cần bấm nút gắn link để dán URL mới và lưu trực tiếp vào CSDL Supabase, hoặc bấm xóa link để nạp lại khi có thay đổi.
 
 ### 2. Trang "Đầu việc của tôi" & Báo cáo (`/my-tasks`)
 - Lọc chính xác chỉ hiển thị các công việc được giao cho cá nhân đang đăng nhập.
