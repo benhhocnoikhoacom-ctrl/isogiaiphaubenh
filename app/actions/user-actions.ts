@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { adminDb } from "@/lib/firebase-admin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 import { UserProfile, UserRole } from "@/types/iso";
 
@@ -21,25 +21,36 @@ export async function changeMyPassword(currentPassword: string, newPassword: str
   const emailLower = session.user.email.toLowerCase();
 
   try {
-    const userDocRef = adminDb.collection("iso_users").doc(emailLower);
-    const userDoc = await userDocRef.get();
+    const { data: userData, error: fetchErr } = await supabaseAdmin
+      .from("iso_users")
+      .select("*")
+      .eq("id", emailLower)
+      .single();
 
-    if (!userDoc.exists) {
+    if (fetchErr || !userData) {
       return { success: false, message: "Không tìm thấy thông tin tài khoản." };
     }
 
-    const userData = userDoc.data();
-    const storedPassword = userData?.password || "isogpb@2026";
+    const storedPassword = userData.password || "isogpb@2026";
 
-    if (currentPassword.trim() !== storedPassword && currentPassword.trim() !== "isogpb@2026" && currentPassword.trim() !== "123456") {
+    if (
+      currentPassword.trim() !== storedPassword &&
+      currentPassword.trim() !== "isogpb@2026" &&
+      currentPassword.trim() !== "123456"
+    ) {
       return { success: false, message: "Mật khẩu hiện tại không chính xác." };
     }
 
-    await userDocRef.update({
-      password: newPassword.trim(),
-      mustChangePassword: false,
-      updatedAt: new Date().toISOString(),
-    });
+    const { error: updateErr } = await supabaseAdmin
+      .from("iso_users")
+      .update({
+        password: newPassword.trim(),
+        must_change_password: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", emailLower);
+
+    if (updateErr) throw updateErr;
 
     revalidatePath("/", "layout");
     return { success: true, message: "Đổi mật khẩu thành công!" };
@@ -75,28 +86,32 @@ export async function createUser(data: {
   }
 
   try {
-    const userDocRef = adminDb.collection("iso_users").doc(emailLower);
-    const existing = await userDocRef.get();
+    const { data: existing } = await supabaseAdmin
+      .from("iso_users")
+      .select("id")
+      .eq("id", emailLower)
+      .single();
 
-    if (existing.exists) {
+    if (existing) {
       return { success: false, message: "Email này đã tồn tại trong danh sách nhân sự." };
     }
 
-    const newUser: UserProfile = {
+    const nowIso = new Date().toISOString();
+    const { error: insertErr } = await supabaseAdmin.from("iso_users").insert({
       id: emailLower,
       email: emailLower,
-      fullName: data.fullName.trim(),
+      full_name: data.fullName.trim(),
       role: data.role || "USER",
       title: data.title.trim() || (data.role === "ADMIN" ? "Trưởng khoa / Admin" : "Kỹ thuật viên"),
       phone: data.phone?.trim() || "",
       password: data.initialPassword?.trim() || "isogpb@2026",
-      mustChangePassword: data.role === "ADMIN" ? false : true,
+      must_change_password: data.role === "ADMIN" ? false : true,
       active: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      created_at: nowIso,
+      updated_at: nowIso,
+    });
 
-    await userDocRef.set(newUser);
+    if (insertErr) throw insertErr;
 
     revalidatePath("/admin/users");
     revalidatePath("/assignment");
@@ -128,20 +143,18 @@ export async function updateUser(
   const emailLower = email.trim().toLowerCase();
 
   try {
-    const userDocRef = adminDb.collection("iso_users").doc(emailLower);
-    const existing = await userDocRef.get();
+    const { error: updateErr } = await supabaseAdmin
+      .from("iso_users")
+      .update({
+        full_name: data.fullName.trim(),
+        role: data.role,
+        title: data.title.trim(),
+        phone: data.phone?.trim() || "",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", emailLower);
 
-    if (!existing.exists) {
-      return { success: false, message: "Không tìm thấy nhân viên cần sửa." };
-    }
-
-    await userDocRef.update({
-      fullName: data.fullName.trim(),
-      role: data.role,
-      title: data.title.trim(),
-      phone: data.phone?.trim() || "",
-      updatedAt: new Date().toISOString(),
-    });
+    if (updateErr) throw updateErr;
 
     revalidatePath("/admin/users");
     revalidatePath("/assignment");
@@ -170,18 +183,22 @@ export async function toggleUserStatus(email: string, active: boolean) {
   }
 
   try {
-    const userDocRef = adminDb.collection("iso_users").doc(emailLower);
-    await userDocRef.update({
-      active,
-      updatedAt: new Date().toISOString(),
-    });
+    const { error: updateErr } = await supabaseAdmin
+      .from("iso_users")
+      .update({
+        active,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", emailLower);
+
+    if (updateErr) throw updateErr;
 
     revalidatePath("/admin/users");
     revalidatePath("/assignment");
     revalidatePath("/");
-    return { 
-      success: true, 
-      message: active ? "Đã kích hoạt lại tài khoản." : "Đã vô hiệu hóa tài khoản thành công." 
+    return {
+      success: true,
+      message: active ? "Đã kích hoạt lại tài khoản." : "Đã vô hiệu hóa tài khoản thành công.",
     };
   } catch (error: any) {
     console.error("Error toggling user status:", error);
@@ -202,23 +219,21 @@ export async function resetUserPassword(email: string, newTempPassword?: string)
   const passwordToSet = newTempPassword?.trim() || "isogpb@2026";
 
   try {
-    const userDocRef = adminDb.collection("iso_users").doc(emailLower);
-    const existing = await userDocRef.get();
+    const { error: updateErr } = await supabaseAdmin
+      .from("iso_users")
+      .update({
+        password: passwordToSet,
+        must_change_password: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", emailLower);
 
-    if (!existing.exists) {
-      return { success: false, message: "Không tìm thấy tài khoản nhân viên." };
-    }
-
-    await userDocRef.update({
-      password: passwordToSet,
-      mustChangePassword: true, // Bắt buộc nhân viên đổi mật khẩu khi đăng nhập lại
-      updatedAt: new Date().toISOString(),
-    });
+    if (updateErr) throw updateErr;
 
     revalidatePath("/admin/users");
-    return { 
-      success: true, 
-      message: `Đã đặt lại mật khẩu thành công! Mật khẩu tạm: ${passwordToSet}` 
+    return {
+      success: true,
+      message: `Đã đặt lại mật khẩu thành công! Mật khẩu tạm: ${passwordToSet}`,
     };
   } catch (error: any) {
     console.error("Error resetting password:", error);
@@ -243,8 +258,12 @@ export async function deleteUser(email: string) {
   }
 
   try {
-    const userDocRef = adminDb.collection("iso_users").doc(emailLower);
-    await userDocRef.delete();
+    const { error: deleteErr } = await supabaseAdmin
+      .from("iso_users")
+      .delete()
+      .eq("id", emailLower);
+
+    if (deleteErr) throw deleteErr;
 
     revalidatePath("/admin/users");
     revalidatePath("/assignment");

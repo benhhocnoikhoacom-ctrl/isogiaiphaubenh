@@ -1,9 +1,8 @@
 "use server";
 
-import { adminDb } from "@/lib/firebase-admin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { uploadFileToDrive } from "@/lib/google-drive";
-import { calculateTaskStatus, getVietnamToday } from "@/lib/task-engine";
-import { TaskRecord, WorkItem } from "@/types/iso";
+import { calculateTaskStatus, getVietnamToday, clearTasksCache } from "@/lib/task-engine";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -23,20 +22,25 @@ export async function submitTaskCompletion(formData: FormData) {
       return { success: false, error: "Thiếu mã công việc (taskId)" };
     }
 
-    const taskRef = adminDb.collection("iso_tasks").doc(taskId);
-    const taskSnap = await taskRef.get();
-    if (!taskSnap.exists) {
+    const { data: taskData, error: taskFetchError } = await supabaseAdmin
+      .from("iso_tasks")
+      .select("*")
+      .eq("task_id", taskId)
+      .single();
+
+    if (taskFetchError || !taskData) {
       return { success: false, error: "Không tìm thấy công việc này trong hệ thống." };
     }
 
-    const taskData = taskSnap.data() as TaskRecord;
-
     // Lấy cấu hình của đầu việc để biết có cần duyệt không
-    const itemRef = adminDb.collection("iso_work_items").doc(taskData.itemId);
-    const itemSnap = await itemRef.get();
-    const itemData = itemSnap.exists ? (itemSnap.data() as WorkItem) : null;
-    const approvalRequired = itemData?.approvalRequired ?? false;
-    const reminderDays = itemData?.reminderDays ?? 3;
+    const { data: itemData } = await supabaseAdmin
+      .from("iso_work_items")
+      .select("approval_required, reminder_days")
+      .eq("item_id", taskData.item_id)
+      .single();
+
+    const approvalRequired = itemData?.approval_required ?? false;
+    const reminderDays = itemData?.reminder_days ?? 3;
 
     let evidenceFileName = "";
 
@@ -45,13 +49,12 @@ export async function submitTaskCompletion(formData: FormData) {
       try {
         const arrayBuffer = await evidenceFile.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const fileName = `${taskData.itemCode}_${taskData.period}_${evidenceFile.name}`;
+        const fileName = `${taskData.item_code}_${taskData.period}_${evidenceFile.name}`;
         const uploadResult = await uploadFileToDrive(buffer, fileName, evidenceFile.type);
         evidenceUrl = uploadResult.webViewLink;
         evidenceFileName = evidenceFile.name;
       } catch (uploadErr: any) {
         console.warn("Upload file to drive warning:", uploadErr?.message);
-        // Nếu Drive API chưa bật, vẫn cho lưu với ghi chú thông báo
         if (!evidenceUrl) {
           evidenceFileName = `${evidenceFile.name} (Chưa đồng bộ Drive)`;
         }
@@ -60,41 +63,46 @@ export async function submitTaskCompletion(formData: FormData) {
 
     const nowIso = new Date().toISOString();
     const newStatus = calculateTaskStatus(
-      taskData.dueDate,
+      taskData.due_date,
       completedDate,
       reminderDays,
       approvalRequired,
-      taskData.approvedAt
+      taskData.approved_at
     );
 
-    const updatePayload: Partial<TaskRecord> = {
-      completedDate,
+    const updatePayload: any = {
+      completed_date: completedDate,
       note,
       status: newStatus,
-      updatedAt: nowIso
+      updated_at: nowIso,
     };
 
     if (evidenceUrl) {
-      updatePayload.evidenceUrl = evidenceUrl;
+      updatePayload.evidence_url = evidenceUrl;
     }
     if (evidenceFileName) {
-      updatePayload.evidenceFileName = evidenceFileName;
+      updatePayload.evidence_file_name = evidenceFileName;
     }
 
-    await taskRef.update(updatePayload);
+    const { error: updateError } = await supabaseAdmin
+      .from("iso_tasks")
+      .update(updatePayload)
+      .eq("task_id", taskId);
+
+    if (updateError) {
+      throw updateError;
+    }
 
     // Ghi nhật ký Audit Log
-    await adminDb.collection("iso_audit_logs").add({
-      userId: userEmail,
-      userName: userName,
-      userEmail: userEmail,
-      action: "COMPLETE",
-      targetId: taskId,
-      targetName: `${taskData.itemCode} - ${taskData.itemName}`,
+    await supabaseAdmin.from("iso_audit_logs").insert({
+      user_id: userEmail,
+      action: "SUBMIT",
+      entity_id: taskId,
       details: `Nộp hoàn thành ngày ${completedDate}. Trạng thái: ${newStatus}`,
-      timestamp: nowIso
+      created_at: nowIso,
     });
 
+    clearTasksCache();
     revalidatePath("/");
     revalidatePath("/my-tasks");
     return { success: true, status: newStatus };
@@ -109,35 +117,40 @@ export async function submitTaskCompletion(formData: FormData) {
  */
 export async function approveTask(taskId: string, approverEmail: string, approverName: string) {
   try {
-    const taskRef = adminDb.collection("iso_tasks").doc(taskId);
-    const taskSnap = await taskRef.get();
-    if (!taskSnap.exists) {
+    const { data: taskData, error: fetchErr } = await supabaseAdmin
+      .from("iso_tasks")
+      .select("item_code, item_name")
+      .eq("task_id", taskId)
+      .single();
+
+    if (fetchErr || !taskData) {
       return { success: false, error: "Không tìm thấy công việc này." };
     }
 
-    const taskData = taskSnap.data() as TaskRecord;
     const nowIso = new Date().toISOString();
 
-    await taskRef.update({
-      status: "COMPLETED",
-      approvedBy: approverEmail,
-      approvedByName: approverName,
-      approvedAt: nowIso,
-      rejectionReason: null,
-      updatedAt: nowIso
-    });
+    const { error: updateErr } = await supabaseAdmin
+      .from("iso_tasks")
+      .update({
+        status: "COMPLETED",
+        approved_by: approverEmail,
+        approved_at: nowIso,
+        rejection_reason: null,
+        updated_at: nowIso,
+      })
+      .eq("task_id", taskId);
 
-    await adminDb.collection("iso_audit_logs").add({
-      userId: approverEmail,
-      userName: approverName,
-      userEmail: approverEmail,
+    if (updateErr) throw updateErr;
+
+    await supabaseAdmin.from("iso_audit_logs").insert({
+      user_id: approverEmail,
       action: "APPROVE",
-      targetId: taskId,
-      targetName: `${taskData.itemCode} - ${taskData.itemName}`,
-      details: "Đã phê duyệt hoàn thành",
-      timestamp: nowIso
+      entity_id: taskId,
+      details: `Đã phê duyệt hoàn thành cho ${taskData.item_code} - ${taskData.item_name}`,
+      created_at: nowIso,
     });
 
+    clearTasksCache();
     revalidatePath("/");
     revalidatePath("/my-tasks");
     return { success: true };
@@ -152,41 +165,48 @@ export async function approveTask(taskId: string, approverEmail: string, approve
  */
 export async function rejectTask(taskId: string, reason: string, approverEmail: string, approverName: string) {
   try {
-    const taskRef = adminDb.collection("iso_tasks").doc(taskId);
-    const taskSnap = await taskRef.get();
-    if (!taskSnap.exists) {
+    const { data: taskData, error: fetchErr } = await supabaseAdmin
+      .from("iso_tasks")
+      .select("*")
+      .eq("task_id", taskId)
+      .single();
+
+    if (fetchErr || !taskData) {
       return { success: false, error: "Không tìm thấy công việc này." };
     }
 
-    const taskData = taskSnap.data() as TaskRecord;
     const nowIso = new Date().toISOString();
 
-    // Reset lại completedDate và tính lại status (thường sẽ về DUE_SOON hoặc OVERDUE)
-    const itemRef = adminDb.collection("iso_work_items").doc(taskData.itemId);
-    const itemSnap = await itemRef.get();
-    const itemData = itemSnap.exists ? (itemSnap.data() as WorkItem) : null;
-    const reminderDays = itemData?.reminderDays ?? 3;
+    const { data: itemData } = await supabaseAdmin
+      .from("iso_work_items")
+      .select("reminder_days")
+      .eq("item_id", taskData.item_id)
+      .single();
 
-    const revertedStatus = calculateTaskStatus(taskData.dueDate, undefined, reminderDays, false, undefined);
+    const reminderDays = itemData?.reminder_days ?? 3;
+    const revertedStatus = calculateTaskStatus(taskData.due_date, undefined, reminderDays, false, undefined);
 
-    await taskRef.update({
-      completedDate: null,
-      status: revertedStatus,
-      rejectionReason: reason,
-      updatedAt: nowIso
-    });
+    const { error: updateErr } = await supabaseAdmin
+      .from("iso_tasks")
+      .update({
+        completed_date: null,
+        status: revertedStatus,
+        rejection_reason: reason,
+        updated_at: nowIso,
+      })
+      .eq("task_id", taskId);
 
-    await adminDb.collection("iso_audit_logs").add({
-      userId: approverEmail,
-      userName: approverName,
-      userEmail: approverEmail,
+    if (updateErr) throw updateErr;
+
+    await supabaseAdmin.from("iso_audit_logs").insert({
+      user_id: approverEmail,
       action: "REJECT",
-      targetId: taskId,
-      targetName: `${taskData.itemCode} - ${taskData.itemName}`,
+      entity_id: taskId,
       details: `Yêu cầu làm lại. Lý do: ${reason}`,
-      timestamp: nowIso
+      created_at: nowIso,
     });
 
+    clearTasksCache();
     revalidatePath("/");
     revalidatePath("/my-tasks");
     return { success: true };
@@ -211,50 +231,45 @@ export async function updateWorkItemAssignment(
   adminName: string
 ) {
   try {
-    const itemRef = adminDb.collection("iso_work_items").doc(itemId);
-    const itemSnap = await itemRef.get();
-    if (!itemSnap.exists) {
-      return { success: false, error: "Không tìm thấy đầu việc." };
-    }
-
     const nowIso = new Date().toISOString();
-    await itemRef.update({
-      assigneeName,
-      assigneeEmail,
-      reviewerName,
-      reviewerEmail,
-      reminderDays: Number(reminderDays),
-      dueRule,
-      updatedAt: nowIso
-    });
 
-    // Cập nhật cả các task chưa hoàn thành của đầu việc này
-    const tasksQuery = await adminDb.collection("iso_tasks")
-      .where("itemId", "==", itemId)
-      .where("status", "in", ["NOT_DUE", "DUE_SOON", "OVERDUE", "PENDING_APPROVAL"])
-      .get();
+    const { error: updateWiErr } = await supabaseAdmin
+      .from("iso_work_items")
+      .update({
+        assignee_id: assigneeEmail,
+        assignee_name: assigneeName,
+        reviewer_id: reviewerEmail,
+        reviewer_name: reviewerName,
+        reminder_days: Number(reminderDays),
+        due_rule: dueRule,
+        updated_at: nowIso,
+      })
+      .eq("item_id", itemId);
 
-    const batch = adminDb.batch();
-    tasksQuery.docs.forEach(doc => {
-      batch.update(doc.ref, {
-        assigneeName,
-        reviewerName,
-        updatedAt: nowIso
-      });
-    });
-    await batch.commit();
+    if (updateWiErr) throw updateWiErr;
 
-    await adminDb.collection("iso_audit_logs").add({
-      userId: adminEmail,
-      userName: adminName,
-      userEmail: adminEmail,
+    // Cập nhật các task chưa hoàn thành của đầu việc này
+    await supabaseAdmin
+      .from("iso_tasks")
+      .update({
+        assignee_id: assigneeEmail,
+        assignee_name: assigneeName,
+        reviewer_id: reviewerEmail,
+        reviewer_name: reviewerName,
+        updated_at: nowIso,
+      })
+      .eq("item_id", itemId)
+      .in("status", ["NOT_DUE", "DUE_SOON", "OVERDUE", "PENDING_APPROVAL"]);
+
+    await supabaseAdmin.from("iso_audit_logs").insert({
+      user_id: adminEmail,
       action: "REASSIGN",
-      targetId: itemId,
-      targetName: itemId,
+      entity_id: itemId,
       details: `Đổi phụ trách: ${assigneeName}, Người duyệt: ${reviewerName}`,
-      timestamp: nowIso
+      created_at: nowIso,
     });
 
+    clearTasksCache();
     revalidatePath("/");
     revalidatePath("/assignment");
     revalidatePath("/my-tasks");
@@ -276,50 +291,51 @@ export async function createEventTask(
   creatorName: string
 ) {
   try {
-    const itemRef = adminDb.collection("iso_work_items").doc(itemId);
-    const itemSnap = await itemRef.get();
-    if (!itemSnap.exists) {
+    const { data: item, error: fetchErr } = await supabaseAdmin
+      .from("iso_work_items")
+      .select("*")
+      .eq("item_id", itemId)
+      .single();
+
+    if (fetchErr || !item) {
       return { success: false, error: "Không tìm thấy đầu việc mẫu." };
     }
 
-    const item = itemSnap.data() as WorkItem;
     const nowIso = new Date().toISOString();
     const period = getVietnamToday();
     const randomSuffix = Math.random().toString(36).substring(2, 6);
     const taskId = `EVT_${itemId}_${period.replace(/-/g, "")}_${randomSuffix}`;
 
-    const status = calculateTaskStatus(dueDate, undefined, item.reminderDays, item.approvalRequired, undefined);
+    const status = calculateTaskStatus(dueDate, undefined, item.reminder_days, item.approval_required, undefined);
 
-    const newTask: TaskRecord = {
-      taskId,
-      itemId: item.itemId,
-      itemCode: item.itemCode,
-      itemName: `${item.itemName} - ${eventDescription}`,
+    const { error: insertErr } = await supabaseAdmin.from("iso_tasks").insert({
+      task_id: taskId,
+      item_id: item.item_id,
+      item_code: item.item_code,
+      item_name: `${item.item_name} - ${eventDescription}`,
       period,
-      dueDate,
+      due_date: dueDate,
       status,
-      assigneeId: item.assigneeId,
-      assigneeName: item.assigneeName,
-      reviewerId: item.reviewerId,
-      reviewerName: item.reviewerName,
+      assignee_id: item.assignee_id,
+      assignee_name: item.assignee_name,
+      reviewer_id: item.reviewer_id,
+      reviewer_name: item.reviewer_name,
       note: eventDescription,
-      createdAt: nowIso,
-      updatedAt: nowIso
-    };
-
-    await adminDb.collection("iso_tasks").doc(taskId).set(newTask);
-
-    await adminDb.collection("iso_audit_logs").add({
-      userId: creatorEmail,
-      userName: creatorName,
-      userEmail: creatorEmail,
-      action: "CREATE_EVENT",
-      targetId: taskId,
-      targetName: newTask.itemName,
-      details: `Tạo công việc phát sinh với hạn ${dueDate}`,
-      timestamp: nowIso
+      created_at: nowIso,
+      updated_at: nowIso,
     });
 
+    if (insertErr) throw insertErr;
+
+    await supabaseAdmin.from("iso_audit_logs").insert({
+      user_id: creatorEmail,
+      action: "CREATE_EVENT",
+      entity_id: taskId,
+      details: `Tạo công việc phát sinh: ${item.item_name} - ${eventDescription} với hạn ${dueDate}`,
+      created_at: nowIso,
+    });
+
+    clearTasksCache();
     revalidatePath("/");
     revalidatePath("/my-tasks");
     return { success: true, taskId };

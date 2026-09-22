@@ -9,9 +9,10 @@ Mọi thay đổi mã nguồn trong tương lai **BẮT BUỘC PHẢI TUÂN TH�
 ## 1. Thông tin Dự án & Môi trường
 - **Tên ứng dụng:** e-ISO Pathology Tracker – Khoa Giải phẫu bệnh
 - **Tên miền hoạt động chính thức:** `https://isogiaiphaubenh.bstrung.vn`
-- **Kho lưu trữ GitHub:** `https://github.com/bsluongdinhtrung-hue/ISOGPB.git` (nhánh `main`)
-- **Nền tảng triển khai:** Vercel (kết nối trực tiếp GitHub nhánh `main`)
-- **Cơ sở dữ liệu:** Firebase Firestore (Project: `ISOGPB`)
+- **Kho lưu trữ GitHub mới:** `https://github.com/benhhocnoikhoacom-ctrl/isogiaiphaubenh.git` (nhánh `main`)
+- **Kho lưu trữ GitHub phụ:** `https://github.com/bsluongdinhtrung-hue/ISOGPB.git` (nhánh `main`)
+- **Nền tảng triển khai:** Vercel
+- **Cơ sở dữ liệu:** Supabase PostgreSQL (Project Ref: `fkjmiatwdcgxdkqnwhgn`)
 - **Thư mục Drive minh chứng:** `1uBf67edEbYouq4828r9QDx38IqpH4gNY`
 - **File quy chuẩn nghiệp vụ (Single Source of Truth):** `INPUT_CHO_IT_eISO_MVP_v2_co_email.xlsx`
 

@@ -1,12 +1,12 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
-import { adminDb } from "./lib/firebase-admin";
-
+import { supabaseAdmin } from "./lib/supabase-admin";
 import { FALLBACK_USERS } from "./lib/fallback-data";
 
 const ADMIN_EMAILS = [
   "bsluongdinhtrung@gmail.com",
+  "luongdinhtrunghue@gmail.com",
   "nguyethmu@gmail.com",
 ];
 
@@ -32,15 +32,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const isAdmin = ADMIN_EMAILS.includes(emailLower);
 
         try {
-          const userDoc = await adminDb.collection("iso_users").doc(emailLower).get();
+          const { data: userData, error } = await supabaseAdmin
+            .from("iso_users")
+            .select("*")
+            .eq("id", emailLower)
+            .single();
 
-          if (!userDoc.exists) {
+          if (error || !userData) {
             // Check fallback for admins with default admin password
             if (isAdmin && (inputPassword === "MeoMoon2789" || inputPassword === "isogpb@2026")) {
               return {
                 id: emailLower,
                 email: emailLower,
-                name: emailLower === "bsluongdinhtrung@gmail.com" ? "Lương Đình Trung" : "Đào Thị Nguyệt",
+                name: emailLower.includes("luongdinhtrung") ? "Lương Đình Trung" : "Đào Thị Nguyệt",
                 role: "ADMIN",
                 title: "Trưởng khoa",
                 mustChangePassword: false,
@@ -49,52 +53,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null;
           }
 
-          const userData = userDoc.data();
-
           // Reject if account is deactivated
-          if (userData?.active === false) {
+          if (userData.active === false) {
             console.log(`Account ${emailLower} is deactivated.`);
             return null;
           }
 
-          const storedPassword = userData?.password || (isAdmin ? "MeoMoon2789" : "isogpb@2026");
+          const storedPassword = userData.password || (isAdmin ? "MeoMoon2789" : "isogpb@2026");
 
           // Check password
-          const isValidPassword = 
-            inputPassword === storedPassword || 
+          const isValidPassword =
+            inputPassword === storedPassword ||
             (isAdmin && inputPassword === "MeoMoon2789") ||
             (!isAdmin && inputPassword === "isogpb@2026");
 
           if (isValidPassword) {
-            const userIsAdmin = isAdmin || userData?.role === "ADMIN";
-            const mustChange = userIsAdmin ? false : (userData?.mustChangePassword !== false);
+            const userIsAdmin = isAdmin || userData.role === "ADMIN";
+            const mustChange = userIsAdmin ? false : userData.must_change_password !== false;
 
             return {
               id: emailLower,
               email: emailLower,
-              name: userData?.fullName || emailLower,
+              name: userData.full_name || emailLower,
               role: (userIsAdmin ? "ADMIN" : "USER") as "ADMIN" | "USER",
-              title: userData?.title || (userIsAdmin ? "Trưởng khoa" : "Nhân viên"),
+              title: userData.title || (userIsAdmin ? "Trưởng khoa" : "Nhân viên"),
               mustChangePassword: mustChange,
             };
           }
 
           return null;
         } catch (error) {
-          console.error("Authorize error in credentials provider (Firebase Quota or Offline):", error);
-          // FALLBACK AN TOÀN KHI FIRESTORE HẾT QUOTA HOẶC MẤT MẠNG
+          console.error("Authorize error in credentials provider (Supabase fallback):", error);
           if (isAdmin && (inputPassword === "MeoMoon2789" || inputPassword === "isogpb@2026")) {
             return {
               id: emailLower,
               email: emailLower,
-              name: emailLower === "bsluongdinhtrung@gmail.com" ? "Lương Đình Trung" : "Đào Thị Nguyệt",
+              name: emailLower.includes("luongdinhtrung") ? "Lương Đình Trung" : "Đào Thị Nguyệt",
               role: "ADMIN",
               title: "Trưởng khoa",
               mustChangePassword: false,
             };
           }
-          const fallbackUser = FALLBACK_USERS.find(u => u.email.toLowerCase() === emailLower);
-          if (fallbackUser && (inputPassword === fallbackUser.password || inputPassword === "isogpb@2026" || inputPassword === "123456")) {
+          const fallbackUser = FALLBACK_USERS.find((u) => u.email.toLowerCase() === emailLower);
+          if (
+            fallbackUser &&
+            (inputPassword === fallbackUser.password || inputPassword === "isogpb@2026" || inputPassword === "123456")
+          ) {
             return {
               id: emailLower,
               email: emailLower,
@@ -106,7 +110,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
           return null;
         }
-        return null;
       },
     }),
     Google({
@@ -124,7 +127,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = user.email;
         token.mustChangePassword = user.mustChangePassword;
       }
-      // Allow updating session token client-side (e.g. after changing password)
       if (trigger === "update" && session) {
         if (session.mustChangePassword !== undefined) {
           token.mustChangePassword = session.mustChangePassword;
