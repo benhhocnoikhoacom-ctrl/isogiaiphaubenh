@@ -373,7 +373,6 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
                     type="file"
                     id="evidenceFileInput"
                     accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                    capture="environment"
                     onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
                         const rawFile = e.target.files[0];

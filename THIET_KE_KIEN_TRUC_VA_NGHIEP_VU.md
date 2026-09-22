@@ -120,7 +120,9 @@
 
 ### 2. Trang "Đầu việc của tôi" & Báo cáo (`/my-tasks`)
 - Lọc chính xác chỉ hiển thị các công việc được giao cho cá nhân đang đăng nhập.
-- Thao tác nộp báo cáo: Chọn ngày hoàn thành, viết ghi chú, dán link hoặc chụp ảnh.
+- Thao tác nộp báo cáo: Chọn ngày hoàn thành, viết ghi chú, dán link hoặc tải minh chứng.
+- **Hỗ trợ đầy đủ các nguồn tải ảnh trên điện thoại (Mobile Upload Options):**
+  - Cho phép người dùng tùy chọn: Chụp ảnh trực tiếp bằng Camera, chọn ảnh có sẵn từ Thư viện ảnh (Photo Library), hoặc chọn tệp PDF/Word/Excel. Không ép buộc chỉ mở Camera.
 - **Nén ảnh tự động ngay trên trình duyệt điện thoại** trước khi tải lên (Client-side compression: từ 5-15MB còn 200-500KB).
 - **Nút bấm xem minh chứng trực tiếp** (cho cả nhân viên và Trưởng khoa mở xem ngay ảnh/PDF/link ngoài).
 - Tab "Phê duyệt" dành riêng cho Trưởng khoa để duyệt hoặc yêu cầu làm lại.
