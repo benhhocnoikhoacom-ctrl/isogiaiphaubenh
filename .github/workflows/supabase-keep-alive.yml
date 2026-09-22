@@ -1,0 +1,25 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    # Chạy tự động mỗi ngày vào lúc 00:00 UTC (07:00 sáng giờ Việt Nam)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Cho phép bấm chạy thủ công kiểm tra bất kỳ lúc nào
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database via PostgREST
+        run: |
+          echo "Sending keep-alive ping to Supabase..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET "https://fkjmiatwdcgxdkqnwhgn.supabase.co/rest/v1/iso_users?select=count" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_iTgoowvYoE7G9jwbK1vY1w_EhaGfrA_' }}" \
+            -H "User-Agent: GitHub-Actions-KeepAlive")
+          echo "HTTP Response Status Code: $RESPONSE"
+          if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 206 ]; then
+            echo "Supabase is active and healthy!"
+          else
+            echo "Warning: Response code was $RESPONSE"
+          fi

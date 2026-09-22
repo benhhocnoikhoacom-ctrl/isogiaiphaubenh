@@ -9,6 +9,7 @@
 - **Kho lưu trữ GitHub chính:** `https://github.com/benhhocnoikhoacom-ctrl/isogiaiphaubenh.git` (nhánh `main`)
 - **Kho lưu trữ GitHub phụ:** `https://github.com/bsluongdinhtrung-hue/ISOGPB.git` (nhánh `main`)
 - **Cơ sở dữ liệu:** Supabase PostgreSQL (Project Ref: `fkjmiatwdcgxdkqnwhgn`)
+- **Cơ chế Chống Dừng CSDL (Keep-Alive Cron):** Cài đặt GitHub Actions tự động quét định kỳ vào lúc 07:00 sáng hàng ngày (`0 0 * * *`), ngăn ngừa tuyệt đối nguy cơ Supabase tự động tạm dừng (Paused) sau 7 ngày không có tương tác.
 - **Nguồn chuẩn nghiệp vụ (Single Source of Truth):** `INPUT_CHO_IT_eISO_MVP_v2_co_email.xlsx` và `Trao đổi ban đầu.txt`.
 - **Mục tiêu số 1:** Quản lý **ĐẦU VIỆC** theo tiêu chuẩn **ISO 15189** ở cấp quản lý của Trưởng khoa và cán bộ nhân viên: ai phụ trách, hạn chót, trạng thái, minh chứng thực hiện, cảnh báo chậm trễ, phê duyệt báo cáo.
 - **Quy tắc vàng:** Không thay thế hồ sơ ISO chi tiết hay hệ thống LIS/HIS; không nhập chi tiết từng máy móc hay từng ca bệnh phẩm/lam/block. Hệ thống đóng vai trò là **Trung tâm chỉ huy & Điều phối (Hub)**.
