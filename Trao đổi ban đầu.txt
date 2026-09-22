@@ -1,0 +1,51 @@
+1. Bản chất & Phạm vi của Hệ thống (Core Philosophy)
+Mục tiêu số 1: App quản lý ĐẦU VIỆC ở cấp Trưởng khoa (ai phụ trách, hạn chót, trạng thái, minh chứng, cảnh báo quá hạn).
+Quy tắc vàng: Không thay thế hồ sơ ISO chi tiết hay LIS/HIS; không nhập chi tiết từng máy móc hay từng ca bệnh phẩm/lam/block.
+4 Trạng thái vận hành chuẩn:
+NOT_DUE (Chưa đến hạn - Xám)
+DUE_SOON (Sắp đến hạn - Vàng hổ phách)
+COMPLETED (Đã hoàn thành - Xanh ngọc lục bảo)
+OVERDUE (Quá hạn - Đỏ cảnh báo)
+2. Tổng hợp Dữ liệu Đầu vào từ Excel
+Nhân sự (8 User hạt nhân + Admin hệ thống):
+Trưởng khoa / Admin: BS. Đào Thị Nguyệt (Nguyethmu@gmail.com)
+Bác sĩ: BS. Lê Tuấn Anh, BS. Nguyễn Thị Ngân
+Kỹ thuật viên (KTV): Lương Thị Thùy Dung, Nguyễn Thị Thu Hương, Trần Thị Vân, Dương Văn Quang, Lại Hải Hà (Hệ thống sẽ cấu hình thêm tài khoản Admin kỹ thuật của BS. Trung bsluongdinhtrung@gmail.com để quản trị).
+30 Đầu việc quản lý chất lượng (Work Items):
+Bao gồm các chu kỳ: Hàng ngày (môi trường XN lúc 09:00, nhận mẫu GB lúc 16:30); Hàng tháng (trang thiết bị, vật tư hóa chất, chỉ số chất lượng, hồ sơ,...); Hàng quý (đào tạo, rủi ro, cải tiến,...); Hàng năm (xem xét lãnh đạo, đánh giá nội bộ,...); Theo sự việc phát sinh (sự không phù hợp, CAPA, khiếu nại,...).
+10 đầu việc quan trọng bắt buộc Trưởng khoa phê duyệt (CAPA, xem xét lãnh đạo, khiếu nại, rủi ro, cải tiến, đánh giá nội bộ,...).
+Minh chứng: Hỗ trợ dán đường dẫn Google Drive / SharePoint hoặc đính kèm tài liệu.
+3. Kiến trúc Đề xuất (Chuẩn Next.js 16 + Supabase + UI Y tế 2026)
+Giao diện Dashboard Trưởng khoa (Executive View):
+- 4 khối KPI trực quan: Quá hạn (Đỏ - mục tiêu 0), Sắp đến hạn (Vàng), Đã hoàn thành (Xanh), Tỷ lệ tuân thủ (%).
+- Bảng điểm nghẽn (Bottleneck List): Gom ngay các việc OVERDUE & DUE_SOON của toàn khoa lên hàng đầu để Trưởng khoa đôn đốc kịp thời.
+- Ma trận tiến độ nhân sự: Theo dõi tỷ lệ hoàn thành của từng nhân viên trong tháng.
+- Giao diện Di động cho Nhân viên (Mobile-First):
+Nhân viên mở điện thoại có ngay danh sách việc trong ngày/tháng của mình.
+Thao tác 1 chạm: Nhập ghi chú, dán link Google Drive minh chứng, bấm "Hoàn thành".
+Module Quản trị Linh hoạt (Zero Hard-code):
+Trưởng khoa/Admin có thể phân công lại người phụ trách, đổi hạn, đổi chu kỳ hoặc số ngày nhắc ngay trên giao diện mà không cần can thiệp code.
+Cơ chế Nhật ký Kiểm toán (Audit Trail):
+Lưu vết ai thao tác, đổi hạn, duyệt, hoàn thành vào lúc nào.
+4. Chương trình Triển khai (Action Plan)
+Tôi đề xuất lộ trình 5 giai đoạn:
+
+Giai đoạn 1: Thiết kế Schema & Khởi tạo Dữ liệu (Foundation)
+Định nghĩa TypeScript Interfaces chuẩn: User, WorkItem, TaskItem, AuditLog.
+Viết script seed tự động 8 tài khoản nhân sự và 30 danh mục đầu việc từ Excel vào Firestore.
+Giai đoạn 2: Cơ chế Tự động hóa Lịch & Trạng thái (Logic Engine)
+Thuật toán tự động sinh Task theo chu kỳ (Hàng ngày T2-T6, Hàng tháng, Hàng quý, Hàng năm, Khi phát sinh).
+Thuật toán tính toán tức thời 4 trạng thái chuẩn (NOT_DUE, DUE_SOON, COMPLETED, OVERDUE) theo thời gian thực.
+Giai đoạn 3: Xây dựng Dashboard Trưởng khoa & Giao diện Nhân viên (UI/UX 2026)
+Dashboard Trưởng khoa: 4 thẻ KPI, bảng điểm nghẽn, bộ lọc theo tháng/quý/năm, danh sách theo nhân sự.
+Trang "Đầu việc của tôi" (My Tasks) tối ưu cho điện thoại: Nộp link minh chứng, báo cáo nhanh.
+Tính năng Trưởng khoa Duyệt/Yêu cầu làm lại đối với các đầu việc bắt buộc duyệt.
+Giai đoạn 4: Quản trị Cấu hình & Xuất Báo cáo Excel
+Trang Admin: Chỉnh sửa phân công, đổi hạn, đổi tần suất, thêm đầu việc phát sinh (Sự không phù hợp, CAPA).
+Xuất file Excel báo cáo phục vụ các đợt đánh giá nội bộ và đánh giá giám sát ISO.
+Giai đoạn 5: Cấu hình Tên miền & Deploy Vercel
+Kiểm thử hiệu năng (< 10s theo giới hạn Vercel Free).
+Cấu hình DNS trỏ domain isogiaiphaubenh.bstrung.vn về Vercel.
+5. Các đề xuất khác
+trong file đã có đủ Email của 8 nhân sự. Cấp mật khẩu cho từng người
+admin (lương đình trung) và trưởng khoa (Đào thị Nguyệt) đang dùng sẵn mật khẩu "MeoMoon2789"

@@ -383,18 +383,33 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
 
                     {/* 6. Thao tác */}
                     <td className="py-3 px-3 text-right">
-                      {t.externalLink ? (
-                        <a
-                          href={t.externalLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-[#1F5C55] hover:underline font-semibold"
-                        >
-                          Mở hệ thống <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <span className="text-[11px] text-[#5C6B68]">Đôn đốc NV</span>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {t.evidenceUrl && (
+                          <a
+                            href={t.evidenceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#E3EFEC] text-[#1F5C55] text-xs font-semibold hover:bg-[#1F5C55] hover:text-white transition-colors"
+                            title="Xem ảnh / minh chứng"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            <span>Minh chứng</span>
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        )}
+                        {t.externalLink ? (
+                          <a
+                            href={t.externalLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-[#1F5C55] hover:underline font-semibold"
+                          >
+                            Mở hệ thống <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : !t.evidenceUrl && (
+                          <span className="text-[11px] text-[#5C6B68]">Đôn đốc NV</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -580,6 +595,9 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                         Yêu cầu làm lại: {t.rejectionReason}
                       </div>
                     )}
+                  </td>
+                  <td className="py-3 px-3 font-medium text-[#12211F]">
+                    {t.assigneeName}
                   </td>
                   <td className="py-3 px-3 font-mono text-[#5C6B68]">
                     <div>{t.dueDate}</div>

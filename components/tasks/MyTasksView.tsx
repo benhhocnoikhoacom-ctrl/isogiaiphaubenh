@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { TaskRecord, TaskStatusCode, WorkItem, ISO_DRIVE_FOLDER_URL } from "@/types/iso";
 import { submitTaskCompletion, createEventTask } from "@/app/actions/task-actions";
+import { compressImage } from "@/lib/image-compress";
 import { useSession, signIn } from "next-auth/react";
 
 interface Props {
@@ -372,9 +373,16 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
                     type="file"
                     id="evidenceFileInput"
                     accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                    onChange={(e) => {
+                    capture="environment"
+                    onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setEvidenceFile(e.target.files[0]);
+                        const rawFile = e.target.files[0];
+                        if (rawFile.type.startsWith("image/")) {
+                          const compressed = await compressImage(rawFile);
+                          setEvidenceFile(compressed);
+                        } else {
+                          setEvidenceFile(rawFile);
+                        }
                       }
                     }}
                     className="hidden"
