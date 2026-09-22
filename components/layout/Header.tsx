@@ -88,16 +88,6 @@ export function Header() {
               <ExternalLink className="h-3 w-3 opacity-60" />
             </a>
 
-            <a
-              href="https://iso-gpb-duc-giang.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 px-3 py-2 rounded-md text-xs font-medium text-[#5C6B68] hover:text-[#1F5C55] hover:bg-[#F7F8F6] transition-colors"
-              title="GB.QL.08 (Nội kiểm) & GB.QL.09 (Thẩm định phương pháp)"
-            >
-              <span>GB.QL.08/09</span>
-              <ExternalLink className="h-3 w-3 opacity-60" />
-            </a>
           </nav>
         </div>
 
@@ -189,24 +179,6 @@ export function Header() {
               <HardDrive className="h-4 w-4" />
               <span>Thư mục Drive Minh chứng</span>
             </div>
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-          <a
-            href="https://iso-gpb-duc-giang.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium text-[#5C6B68] hover:bg-[#F7F8F6]"
-          >
-            <span>Hệ thống GB.QL.08 / GB.QL.09</span>
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-          <a
-            href="https://quanlithietbi.bstrung.vn"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium text-[#5C6B68] hover:bg-[#F7F8F6]"
-          >
-            <span>XN.QL.01 - Quản lý Thiết bị</span>
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </div>

@@ -15,10 +15,13 @@ import {
   Calendar,
   User,
   Search,
-  CheckSquare
+  CheckSquare,
+  Link as LinkIcon,
+  Trash2,
+  Edit2
 } from "lucide-react";
 import { TaskRecord, DashboardStats, StaffPerformance, TaskStatusCode, ISO_DRIVE_FOLDER_URL } from "@/types/iso";
-import { approveTask, rejectTask } from "@/app/actions/task-actions";
+import { approveTask, rejectTask, updateWorkItemExternalLink } from "@/app/actions/task-actions";
 import { useSession } from "next-auth/react";
 import { getVietnamToday, parseDateToYMD } from "@/lib/date-utils";
 
@@ -41,9 +44,31 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
   const [rejectionModalTask, setRejectionModalTask] = useState<TaskRecord | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
+  // Modal gắn / sửa / xóa link ngoài
+  const [editingLinkTask, setEditingLinkTask] = useState<TaskRecord | null>(null);
+  const [inputLink, setInputLink] = useState("");
+  const [isSavingLink, setIsSavingLink] = useState(false);
+
   const isAdmin = session?.user?.role === "ADMIN";
   const userEmail = session?.user?.email || "";
   const userName = session?.user?.name || "Trưởng khoa";
+
+  async function handleSaveExternalLink(newLink: string | null) {
+    if (!editingLinkTask) return;
+    setIsSavingLink(true);
+    const res = await updateWorkItemExternalLink(editingLinkTask.itemId, newLink);
+    if (res.success) {
+      setTasks(prev => prev.map(t => t.itemId === editingLinkTask.itemId ? {
+        ...t,
+        externalLink: newLink || undefined
+      } : t));
+      setEditingLinkTask(null);
+      setInputLink("");
+    } else {
+      alert(res.error || "Có lỗi khi lưu link ngoài.");
+    }
+    setIsSavingLink(false);
+  }
 
   // Lọc danh sách task
   const filteredTasks = tasks.filter(task => {
@@ -581,7 +606,8 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                 <th className="py-2.5 px-3">Hạn hoàn thành</th>
                 <th className="py-2.5 px-3">Trạng thái</th>
                 <th className="py-2.5 px-3">Minh chứng</th>
-                <th className="py-2.5 px-3 text-right">Thao tác</th>
+                <th className="py-2.5 px-3">Thao tác</th>
+                <th className="py-2.5 px-3 text-right">Link ngoài</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#DDE3E0]">
@@ -624,17 +650,8 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                       <span className="text-[11px] text-[#5C6B68]">Chưa có</span>
                     )}
                   </td>
-                  <td className="py-3 px-3 text-right">
-                    {t.externalLink ? (
-                      <a
-                        href={t.externalLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#E3EFEC] text-[#1F5C55] text-xs font-semibold hover:bg-[#1F5C55] hover:text-white transition-colors"
-                      >
-                        Mở link <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : t.status === "PENDING_APPROVAL" && isAdmin ? (
+                  <td className="py-3 px-3">
+                    {t.status === "PENDING_APPROVAL" && isAdmin ? (
                       <button
                         onClick={() => handleApprove(t.taskId)}
                         disabled={processingTaskId === t.taskId}
@@ -643,8 +660,70 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                         Duyệt
                       </button>
                     ) : (
-                      <span className="text-[11px] text-[#5C6B68]">—</span>
+                      <span className="text-[11px] text-[#5C6B68]">
+                        {t.status === "COMPLETED" ? "Đã xong" : "Theo dõi"}
+                      </span>
                     )}
+                  </td>
+                  <td className="py-3 px-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {t.externalLink ? (
+                        <>
+                          <a
+                            href={t.externalLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#E3EFEC] text-[#1F5C55] text-xs font-semibold hover:bg-[#1F5C55] hover:text-white transition-colors"
+                            title={t.externalLink}
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            <span>Mở link</span>
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                          {isAdmin && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingLinkTask(t);
+                                  setInputLink(t.externalLink || "");
+                                }}
+                                className="p-1 rounded text-[#5C6B68] hover:text-[#1F5C55] hover:bg-[#F7F8F6]"
+                                title="Sửa link"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Bạn có chắc muốn xóa link ngoài của đầu việc ${t.itemCode}?`)) {
+                                    setEditingLinkTask(t);
+                                    handleSaveExternalLink(null);
+                                  }
+                                }}
+                                className="p-1 rounded text-[#5C6B68] hover:text-[#B3261E] hover:bg-[#FBE6E4]"
+                                title="Xóa link"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        isAdmin ? (
+                          <button
+                            onClick={() => {
+                              setEditingLinkTask(t);
+                              setInputLink("");
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded border border-dashed border-[#DDE3E0] text-[11px] font-medium text-[#5C6B68] hover:text-[#1F5C55] hover:border-[#1F5C55]"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            <span>+ Gắn link</span>
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-[#5C6B68]">—</span>
+                        )
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -686,6 +765,71 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
               >
                 Gửi yêu cầu
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Gắn / Thay đổi Link Ngoài cho Đầu việc */}
+      {editingLinkTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl border border-[#DDE3E0] shadow-xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b border-[#DDE3E0] pb-3">
+              <LinkIcon className="h-5 w-5 text-[#1F5C55]" />
+              <h3 className="text-base font-bold text-[#12211F]">
+                Cấu hình Link ngoài: {editingLinkTask.itemCode}
+              </h3>
+            </div>
+
+            <div>
+              <p className="text-xs text-[#5C6B68] mb-1">
+                Đầu việc: <strong className="text-[#12211F]">{editingLinkTask.itemName}</strong>
+              </p>
+              <label className="block text-xs font-semibold text-[#12211F] mt-3 mb-1">
+                Đường dẫn liên kết (URL):
+              </label>
+              <input
+                type="url"
+                value={inputLink}
+                onChange={(e) => setInputLink(e.target.value)}
+                placeholder="https://quanlithietbi.bstrung.vn..."
+                className="w-full p-2.5 text-xs rounded-md border border-[#DDE3E0] font-mono focus:outline-none focus:border-[#1F5C55]"
+              />
+              <p className="text-[11px] text-[#5C6B68] mt-1.5">
+                💡 Khi có module mới (như quản lý thiết bị, nội kiểm, HIS/LIS), bạn chỉ cần dán URL vào đây. Bấm vào link sẽ mở tab mới.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-[#DDE3E0]">
+              {editingLinkTask.externalLink ? (
+                <button
+                  onClick={() => handleSaveExternalLink(null)}
+                  disabled={isSavingLink}
+                  className="px-3 py-1.5 text-xs font-semibold text-[#B3261E] hover:bg-[#FBE6E4] rounded-md transition-colors disabled:opacity-50"
+                >
+                  Xóa link này
+                </button>
+              ) : <div />}
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditingLinkTask(null);
+                    setInputLink("");
+                  }}
+                  disabled={isSavingLink}
+                  className="px-3.5 py-1.5 text-xs font-medium text-[#5C6B68] hover:bg-[#F7F8F6] rounded-md"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={() => handleSaveExternalLink(inputLink)}
+                  disabled={isSavingLink || !inputLink.trim()}
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-[#1F5C55] hover:bg-[#16443F] rounded-md disabled:opacity-50 transition-colors shadow-2xs"
+                >
+                  {isSavingLink ? "Đang lưu..." : "Lưu link"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

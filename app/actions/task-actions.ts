@@ -344,3 +344,36 @@ export async function createEventTask(
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Trưởng khoa / Admin cập nhật hoặc xóa link ngoài gắn cho đầu việc
+ */
+export async function updateWorkItemExternalLink(itemId: string, newLink: string | null) {
+  try {
+    const linkValue = newLink && newLink.trim() !== "" ? newLink.trim() : null;
+    const nowIso = new Date().toISOString();
+
+    const { error: wiErr } = await supabaseAdmin
+      .from("iso_work_items")
+      .update({ external_link: linkValue, updated_at: nowIso })
+      .eq("item_id", itemId);
+
+    if (wiErr) throw wiErr;
+
+    // Cập nhật cả các task liên quan
+    await supabaseAdmin
+      .from("iso_tasks")
+      .update({ external_link: linkValue, updated_at: nowIso })
+      .eq("item_id", itemId);
+
+    clearTasksCache();
+    revalidatePath("/");
+    revalidatePath("/assignment");
+    revalidatePath("/my-tasks");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Lỗi updateWorkItemExternalLink:", error);
+    return { success: false, error: error.message };
+  }
+}
+
