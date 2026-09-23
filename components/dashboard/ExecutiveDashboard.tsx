@@ -412,6 +412,7 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
             <table className="w-full text-left text-xs">
               <thead className="bg-[#F7F8F6] text-[#5C6B68] border-b border-[#DDE3E0] font-mono uppercase">
                 <tr>
+                  <th className="py-2.5 px-3 w-12 text-center">STT</th>
                   <th className="py-2.5 px-3">Mã</th>
                   <th className="py-2.5 px-3">Đầu việc quản lý</th>
                   <th className="py-2.5 px-3">Phụ trách</th>
@@ -421,8 +422,11 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#DDE3E0]">
-                {bottleneckTasks.map(t => (
+                {bottleneckTasks.map((t, index) => (
                   <tr key={t.taskId} className="hover:bg-[#F7F8F6] transition-colors">
+                    {/* 0. STT */}
+                    <td className="py-3 px-3 text-center font-mono text-[#5C6B68] font-medium">{index + 1}</td>
+                    
                     {/* 1. Mã */}
                     <td className="py-3 px-3 font-mono font-bold text-[#1F5C55]">{t.itemCode}</td>
                     
@@ -644,6 +648,7 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
           <table className="w-full text-left text-xs">
             <thead className="bg-[#F7F8F6] text-[#5C6B68] border-b border-[#DDE3E0] font-mono uppercase">
               <tr>
+                <th className="py-2.5 px-3 w-12 text-center">STT</th>
                 <th className="py-2.5 px-3">Mã</th>
                 <th className="py-2.5 px-3">Đầu việc quản lý</th>
                 <th className="py-2.5 px-3">Phụ trách</th>
@@ -655,8 +660,9 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
               </tr>
             </thead>
             <tbody className="divide-y divide-[#DDE3E0]">
-              {filteredTasks.map(t => (
+              {filteredTasks.map((t, index) => (
                 <tr key={t.taskId} className="hover:bg-[#F7F8F6] transition-colors">
+                  <td className="py-3 px-3 text-center font-mono text-[#5C6B68] font-medium">{index + 1}</td>
                   <td className="py-3 px-3 font-mono font-bold text-[#1F5C55]">{t.itemCode}</td>
                   <td className="py-3 px-3 max-w-xs sm:max-w-md">
                     <div className="font-semibold text-[#12211F]">{t.itemName}</div>

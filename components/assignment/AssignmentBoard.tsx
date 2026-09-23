@@ -135,6 +135,7 @@ export function AssignmentBoard({ initialWorkItems, users }: Props) {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#F7F8F6] text-[#5C6B68] border-b border-[#DDE3E0] font-mono uppercase">
               <tr>
+                <th className="py-3 px-3 w-12 text-center">STT</th>
                 <th className="py-3 px-3">Mã</th>
                 <th className="py-3 px-3">Đầu việc quản lý</th>
                 <th className="py-3 px-3">Tần suất</th>
@@ -146,11 +147,12 @@ export function AssignmentBoard({ initialWorkItems, users }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#DDE3E0]">
-              {filteredItems.map(item => {
+              {filteredItems.map((item, index) => {
                 const isEditing = editingItemId === item.itemId;
 
                 return (
                   <tr key={item.itemId} className={isEditing ? "bg-[#E3EFEC]/30" : "hover:bg-[#F7F8F6] transition-colors"}>
+                    <td className="py-3 px-3 text-center font-mono text-[#5C6B68] font-medium">{index + 1}</td>
                     <td className="py-3 px-3 font-mono font-bold text-[#1F5C55]">{item.itemCode}</td>
                     
                     <td className="py-3 px-3 max-w-xs">

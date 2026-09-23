@@ -110,12 +110,12 @@
 ### 1. Dashboard Tổng quan (`/`)
 - Mọi thành viên đều xem được.
 - **Top Bar:** 4 thẻ KPI (Quá hạn, Sắp đến hạn, Đã hoàn thành, Tỷ lệ tuân thủ %). Thanh Header trên cùng được dọn sạch, loại bỏ hoàn toàn các link module lẻ để giữ giao diện chuẩn mực, tinh gọn.
-- **Bảng Điểm nghẽn:** Đúng 6 cột chuẩn (`Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành (kèm số ngày trễ)`, `Trạng thái`, `Thao tác` có nút xem minh chứng trực tiếp). Ưu tiên việc Quá hạn lên trên đầu. Mọi ngày trễ của công việc hàng ngày đều được liệt kê chi tiết tại đây để Trưởng khoa đôn đốc.
+- **Bảng Điểm nghẽn:** Đúng 7 cột chuẩn (`STT`, `Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành (kèm số ngày trễ)`, `Trạng thái`, `Thao tác` có nút xem minh chứng trực tiếp). Ưu tiên việc Quá hạn lên trên đầu. Mọi ngày trễ của công việc hàng ngày đều được liệt kê chi tiết tại đây để Trưởng khoa đôn đốc.
 - **Thẻ Tiến độ Nhân sự:** Thống kê khối lượng từng người, bấm vào lọc ra ngay công việc của người đó (BS. Đào Thị Nguyệt ra đúng 2 việc).
 - **Bảng 30 Đầu việc Quản lý Chất lượng (ISO 15189):**
   - **Cơ chế giữ chuẩn 30 dòng (Anti-clutter):** Gom nhóm theo từng đầu việc để bảng luôn duy trì đúng 30 dòng đại diện chuẩn (W001 – W030), không bị phình to khi công việc hàng ngày tích lũy qua nhiều ngày.
   - **Cảnh báo nợ việc hàng ngày:** Nếu đầu việc hàng ngày có các ngày cũ chưa làm, hệ thống hiển thị nhãn cảnh báo đỏ trực tiếp dưới tên đầu việc: `⚠️ Còn nợ X ngày trước chưa kiểm soát`.
-  - Cấu trúc các cột: `Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành`, `Trạng thái`, `Minh chứng`, `Thao tác`, và **cột cuối cùng là `Link ngoài`**.
+  - Cấu trúc các cột: **`STT` (đánh số thứ tự 1-30)**, `Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành`, `Trạng thái`, `Minh chứng`, `Thao tác`, và **cột cuối cùng là `Link ngoài`**.
   - **Cột Link ngoài (Cơ chế bền vững - Single Source of Truth):**
     - Link ngoài được lưu trữ tập trung tại bảng danh mục gốc `iso_work_items` trong CSDL Supabase và tự động ánh xạ sang danh sách task khi hiển thị.
     - **Không bị mất khi F5 / reset:** Dù người dùng tải lại trang, đổi thiết bị hay reset phiên làm việc, link đã gắn luôn được nạp chính xác 100%.
