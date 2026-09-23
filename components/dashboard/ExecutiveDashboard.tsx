@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   AlertTriangle, 
   Clock, 
@@ -53,12 +53,13 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
   const userEmail = session?.user?.email || "";
   const userName = session?.user?.name || "Trưởng khoa";
 
-  async function handleSaveExternalLink(newLink: string | null) {
-    if (!editingLinkTask) return;
+  async function handleSaveExternalLink(newLink: string | null, targetTask?: TaskRecord) {
+    const taskToSave = targetTask || editingLinkTask;
+    if (!taskToSave) return;
     setIsSavingLink(true);
-    const res = await updateWorkItemExternalLink(editingLinkTask.itemId, newLink);
+    const res = await updateWorkItemExternalLink(taskToSave.itemId, newLink);
     if (res.success) {
-      setTasks(prev => prev.map(t => t.itemId === editingLinkTask.itemId ? {
+      setTasks(prev => prev.map(t => t.itemId === taskToSave.itemId ? {
         ...t,
         externalLink: newLink || undefined
       } : t));
@@ -70,9 +71,52 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
     setIsSavingLink(false);
   }
 
-  // Lọc danh sách task
-  const filteredTasks = tasks.filter(task => {
-    const matchesFilter = activeFilter === "ALL" ? true : task.status === activeFilter;
+  // Gom nhóm danh sách 30 đầu việc: Mỗi đầu việc hiển thị đúng 1 dòng duy nhất (giữ chuẩn 30 dòng)
+  // Nếu có công việc hàng ngày của ngày cũ chưa hoàn thành, hiển thị cảnh báo tồn đọng
+  const groupedWorkItems = useMemo(() => {
+    const map = new Map<string, {
+      latestTask: TaskRecord;
+      allTasks: TaskRecord[];
+      overdueCount: number;
+    }>();
+
+    for (const t of tasks) {
+      if (!map.has(t.itemId)) {
+        map.set(t.itemId, {
+          latestTask: t,
+          allTasks: [t],
+          overdueCount: t.status === "OVERDUE" ? 1 : 0
+        });
+      } else {
+        const entry = map.get(t.itemId)!;
+        entry.allTasks.push(t);
+        if (t.status === "OVERDUE") {
+          entry.overdueCount++;
+        }
+        // Chọn task mới nhất làm đại diện
+        if (t.dueDate > entry.latestTask.dueDate || (t.dueDate === entry.latestTask.dueDate && t.period > entry.latestTask.period)) {
+          entry.latestTask = t;
+        }
+      }
+    }
+
+    return Array.from(map.values()).map(entry => {
+      const rep = { ...entry.latestTask } as TaskRecord & { backlogOverdueCount?: number };
+      if (entry.overdueCount > 0) {
+        rep.backlogOverdueCount = entry.overdueCount;
+      }
+      return rep;
+    });
+  }, [tasks]);
+
+  // Lọc danh sách cho bảng 30 đầu việc
+  const filteredTasks = groupedWorkItems.filter(task => {
+    const matchesFilter = activeFilter === "ALL" 
+      ? true 
+      : activeFilter === "OVERDUE"
+      ? (task.status === "OVERDUE" || (task.backlogOverdueCount && task.backlogOverdueCount > 0))
+      : task.status === activeFilter;
+
     const matchesSearch = 
       task.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -616,6 +660,11 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                   <td className="py-3 px-3 font-mono font-bold text-[#1F5C55]">{t.itemCode}</td>
                   <td className="py-3 px-3 max-w-xs sm:max-w-md">
                     <div className="font-semibold text-[#12211F]">{t.itemName}</div>
+                    {(t as any).backlogOverdueCount && (t as any).backlogOverdueCount > 0 && t.status !== "OVERDUE" && (
+                      <div className="text-[11px] text-[#B3261E] bg-[#FBE6E4] px-2 py-0.5 rounded mt-1 font-medium inline-flex items-center gap-1">
+                        <span>⚠️ Còn nợ {(t as any).backlogOverdueCount} ngày trước chưa kiểm soát</span>
+                      </div>
+                    )}
                     {t.rejectionReason && (
                       <div className="text-[11px] text-[#B3261E] bg-[#FBE6E4] px-2 py-0.5 rounded mt-1">
                         Yêu cầu làm lại: {t.rejectionReason}
@@ -695,8 +744,7 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                               <button
                                 onClick={() => {
                                   if (confirm(`Bạn có chắc muốn xóa link ngoài của đầu việc ${t.itemCode}?`)) {
-                                    setEditingLinkTask(t);
-                                    handleSaveExternalLink(null);
+                                    handleSaveExternalLink(null, t);
                                   }
                                 }}
                                 className="p-1 rounded text-[#5C6B68] hover:text-[#B3261E] hover:bg-[#FBE6E4]"

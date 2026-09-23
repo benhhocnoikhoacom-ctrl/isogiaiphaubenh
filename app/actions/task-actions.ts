@@ -360,12 +360,6 @@ export async function updateWorkItemExternalLink(itemId: string, newLink: string
 
     if (wiErr) throw wiErr;
 
-    // Cập nhật cả các task liên quan
-    await supabaseAdmin
-      .from("iso_tasks")
-      .update({ external_link: linkValue, updated_at: nowIso })
-      .eq("item_id", itemId);
-
     clearTasksCache();
     revalidatePath("/");
     revalidatePath("/assignment");

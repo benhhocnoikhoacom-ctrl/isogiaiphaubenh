@@ -95,12 +95,13 @@
 - `COMPLETED` (Đã hoàn thành - Thẻ xanh lá): Đã có `Completed_Date` và được Trưởng khoa phê duyệt (nếu có yêu cầu duyệt).
 - `PENDING_APPROVAL` (Chờ duyệt - Thẻ xanh lơ): Nhân viên đã nộp báo cáo, đang chờ Trưởng khoa duyệt.
 
-### B. Quy tắc sinh hạn tự động
-- Công việc hàng ngày: Tính các ngày làm việc Thứ 2 – Thứ 6 (tự động bỏ qua Thứ 7, Chủ nhật).
-- Công việc hàng tháng kỳ `M/YYYY`: Hạn là ngày 03, 05 hoặc 10 của tháng `(M+1)/YYYY`.
-- Công việc hàng quý: Hạn là ngày 05 hoặc 10 của tháng đầu quý kế tiếp.
-- Công việc hàng năm: Hạn cố định theo lịch khoa (31/10, 30/11, 15/12).
-- Công việc phát sinh: Khởi tạo linh hoạt khi có sự cố, CAPA, khiếu nại...
+### B. Quy tắc sinh hạn tự động & Quét quá hạn toàn diện
+- **Công việc hàng ngày (Daily):** Tính các ngày làm việc Thứ 2 – Thứ 6 (tự động bỏ qua Thứ 7, Chủ nhật). Nếu nhân viên không làm ngày hôm trước hoặc các ngày trước đó, các task cũ đó sẽ được giữ nguyên và tự động chuyển thành `OVERDUE` (Quá hạn) khi bước sang ngày mới để kiểm soát nợ việc theo tiêu chuẩn ISO 15189.
+- **Cơ chế Quét Quá hạn Tự động (Comprehensive Overdue Sweep):** Mỗi khi hệ thống được nạp (hoặc khi cron keep-alive chạy lúc 07:00 sáng), hệ thống quét toàn bộ các task chưa hoàn thành (`status !== 'COMPLETED'`) trong CSDL Supabase. Nếu `Hôm nay > due_date`, hệ thống tự động đổi trạng thái sang `OVERDUE` và cập nhật tức thời vào Supabase, loại bỏ triệt để hiện tượng task cũ bị kẹt ở trạng thái `DUE_SOON`.
+- **Công việc hàng tháng kỳ `M/YYYY`:** Hạn là ngày 03, 05 hoặc 10 của tháng `(M+1)/YYYY`.
+- **Công việc hàng quý:** Hạn là ngày 05 hoặc 10 của tháng đầu quý kế tiếp.
+- **Công việc hàng năm:** Hạn cố định theo lịch khoa (31/10, 30/11, 15/12).
+- **Công việc phát sinh:** Khởi tạo linh hoạt khi có sự cố, CAPA, khiếu nại...
 
 ---
 
@@ -109,11 +110,15 @@
 ### 1. Dashboard Tổng quan (`/`)
 - Mọi thành viên đều xem được.
 - **Top Bar:** 4 thẻ KPI (Quá hạn, Sắp đến hạn, Đã hoàn thành, Tỷ lệ tuân thủ %). Thanh Header trên cùng được dọn sạch, loại bỏ hoàn toàn các link module lẻ để giữ giao diện chuẩn mực, tinh gọn.
-- **Bảng Điểm nghẽn:** Đúng 6 cột chuẩn (`Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành (kèm số ngày trễ)`, `Trạng thái`, `Thao tác` có nút xem minh chứng trực tiếp). Ưu tiên việc Quá hạn lên trên đầu.
+- **Bảng Điểm nghẽn:** Đúng 6 cột chuẩn (`Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành (kèm số ngày trễ)`, `Trạng thái`, `Thao tác` có nút xem minh chứng trực tiếp). Ưu tiên việc Quá hạn lên trên đầu. Mọi ngày trễ của công việc hàng ngày đều được liệt kê chi tiết tại đây để Trưởng khoa đôn đốc.
 - **Thẻ Tiến độ Nhân sự:** Thống kê khối lượng từng người, bấm vào lọc ra ngay công việc của người đó (BS. Đào Thị Nguyệt ra đúng 2 việc).
 - **Bảng 30 Đầu việc Quản lý Chất lượng (ISO 15189):**
+  - **Cơ chế giữ chuẩn 30 dòng (Anti-clutter):** Gom nhóm theo từng đầu việc để bảng luôn duy trì đúng 30 dòng đại diện chuẩn (W001 – W030), không bị phình to khi công việc hàng ngày tích lũy qua nhiều ngày.
+  - **Cảnh báo nợ việc hàng ngày:** Nếu đầu việc hàng ngày có các ngày cũ chưa làm, hệ thống hiển thị nhãn cảnh báo đỏ trực tiếp dưới tên đầu việc: `⚠️ Còn nợ X ngày trước chưa kiểm soát`.
   - Cấu trúc các cột: `Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành`, `Trạng thái`, `Minh chứng`, `Thao tác`, và **cột cuối cùng là `Link ngoài`**.
-  - **Cột Link ngoài:**
+  - **Cột Link ngoài (Cơ chế bền vững - Single Source of Truth):**
+    - Link ngoài được lưu trữ tập trung tại bảng danh mục gốc `iso_work_items` trong CSDL Supabase và tự động ánh xạ sang danh sách task khi hiển thị.
+    - **Không bị mất khi F5 / reset:** Dù người dùng tải lại trang, đổi thiết bị hay reset phiên làm việc, link đã gắn luôn được nạp chính xác 100%.
     - Đầu việc đã có link: Hiển thị nút **"Mở link"** chuyển đến hệ thống chuyên dụng (tab mới).
     - Với tài khoản Admin: Có nút **Sửa link (✏️)** và **Xóa link (🗑️)** trực tiếp trên từng dòng.
     - Đầu việc chưa có link: Admin thấy nút **`+ Gắn link`**.

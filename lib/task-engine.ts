@@ -73,6 +73,7 @@ export function mapSupabaseTask(row: any): TaskRecord {
     approvedBy: row.approved_by || undefined,
     approvedAt: row.approved_at || undefined,
     rejectionReason: row.rejection_reason || undefined,
+    externalLink: row.external_link || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -103,6 +104,8 @@ export async function syncTasksForCurrentPeriod(): Promise<TaskRecord[]> {
     }
 
     const workItems = workItemRows.map(mapSupabaseWorkItem);
+    const workItemMap = new Map<string, WorkItem>();
+    workItems.forEach((item) => workItemMap.set(item.itemId, item));
 
     // 2. Lấy tất cả task hiện có từ Supabase
     const { data: taskRows, error: taskError } = await supabaseAdmin
@@ -123,6 +126,7 @@ export async function syncTasksForCurrentPeriod(): Promise<TaskRecord[]> {
     const tasksToUpdate: { task_id: string; status: string; updated_at: string }[] = [];
     const nowIso = new Date().toISOString();
 
+    // 3. Sinh task mới cho kỳ hiện tại nếu chưa tồn tại
     for (const item of workItems) {
       // Bỏ qua task Daily nếu hôm nay là Thứ 7 hoặc Chủ Nhật
       if (item.frequency === "Daily" && (dayOfWeek === 0 || dayOfWeek === 6)) {
@@ -170,27 +174,35 @@ export async function syncTasksForCurrentPeriod(): Promise<TaskRecord[]> {
         });
 
         taskMap.set(key, newTask);
-      } else {
-        // Cập nhật lại status theo thời gian thực nếu chưa hoàn thành
-        const currentTask = taskMap.get(key)!;
-        if (currentTask.status !== "COMPLETED") {
-          const freshStatus = calculateTaskStatus(
-            currentTask.dueDate,
-            currentTask.completedDate,
-            item.reminderDays,
-            item.approvalRequired,
-            currentTask.approvedAt
-          );
+      }
+    }
 
-          if (freshStatus !== currentTask.status) {
-            currentTask.status = freshStatus;
-            currentTask.updatedAt = nowIso;
-            tasksToUpdate.push({
-              task_id: currentTask.taskId,
-              status: freshStatus,
-              updated_at: nowIso,
-            });
-          }
+    // 4. QUÉT VÀ CẬP NHẬT TRẠNG THÁI CHO TẤT CẢ TASK CHƯA HOÀN THÀNH & ĐỒNG BỘ LINK NGOÀI
+    for (const task of taskMap.values()) {
+      const wi = workItemMap.get(task.itemId);
+      // Đồng bộ link ngoài từ danh mục gốc (hỗ trợ cả gán link mới hoặc xóa link)
+      task.externalLink = wi?.externalLink || undefined;
+
+      // Quét lại toàn bộ các task chưa hoàn thành theo thời gian thực (đối chiếu hôm nay vs due_date)
+      if (task.status !== "COMPLETED") {
+        const reminderDays = wi?.reminderDays ?? 3;
+        const approvalRequired = wi?.approvalRequired ?? false;
+        const freshStatus = calculateTaskStatus(
+          task.dueDate,
+          task.completedDate,
+          reminderDays,
+          approvalRequired,
+          task.approvedAt
+        );
+
+        if (freshStatus !== task.status) {
+          task.status = freshStatus;
+          task.updatedAt = nowIso;
+          tasksToUpdate.push({
+            task_id: task.taskId,
+            status: freshStatus,
+            updated_at: nowIso,
+          });
         }
       }
     }
