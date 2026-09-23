@@ -113,7 +113,7 @@
 - **Bảng Điểm nghẽn:** Đúng 7 cột chuẩn (`STT`, `Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành (kèm số ngày trễ)`, `Trạng thái`, `Thao tác` có nút xem minh chứng trực tiếp). Ưu tiên việc Quá hạn lên trên đầu. Mọi ngày trễ của công việc hàng ngày đều được liệt kê chi tiết tại đây để Trưởng khoa đôn đốc.
 - **Thẻ Tiến độ Nhân sự:** Thống kê khối lượng từng người, bấm vào lọc ra ngay công việc của người đó (BS. Đào Thị Nguyệt ra đúng 2 việc).
 - **Bảng 30 Đầu việc Quản lý Chất lượng (ISO 15189):**
-  - **Cơ chế giữ chuẩn 30 dòng (Anti-clutter):** Gom nhóm theo từng đầu việc để bảng luôn duy trì đúng 30 dòng đại diện chuẩn (W001 – W030), không bị phình to khi công việc hàng ngày tích lũy qua nhiều ngày.
+  - **Cơ chế giữ chuẩn 30 dòng (Anti-clutter):** Gom nhóm theo từng đầu việc để bảng luôn duy trì đúng 30 dòng đại diện chuẩn (W001 – W030), không bị phình to khi công việc hàng ngày tích lũy qua nhiều ngày. Bộ nút lọc phía trên bảng (`Tất cả`, `Quá hạn`, `Sắp đến hạn`, `Chờ duyệt`, `Đã xong`) tính toán chính xác trên danh mục 30 đầu việc này, đảm bảo nhãn "Tất cả" luôn hiển thị đúng chuẩn `Tất cả (30)`.
   - **Cảnh báo nợ việc hàng ngày:** Nếu đầu việc hàng ngày có các ngày cũ chưa làm, hệ thống hiển thị nhãn cảnh báo đỏ trực tiếp dưới tên đầu việc: `⚠️ Còn nợ X ngày trước chưa kiểm soát`.
   - Cấu trúc các cột: **`STT` (đánh số thứ tự 1-30)**, `Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành`, `Trạng thái`, `Minh chứng`, `Thao tác`, và **cột cuối cùng là `Link ngoài`**.
   - **Cột Link ngoài (Cơ chế bền vững - Single Source of Truth):**

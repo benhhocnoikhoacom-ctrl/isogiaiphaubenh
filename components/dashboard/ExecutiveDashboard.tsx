@@ -109,6 +109,34 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
     });
   }, [tasks]);
 
+  // Đếm chính xác số lượng đầu việc theo từng bộ lọc trên Bảng 30 đầu việc (Chuẩn 30 đầu việc)
+  const tableCounts = useMemo(() => {
+    let overdue = 0;
+    let dueSoon = 0;
+    let pending = 0;
+    let completed = 0;
+
+    for (const item of groupedWorkItems) {
+      if (item.status === "OVERDUE" || ((item as any).backlogOverdueCount && (item as any).backlogOverdueCount > 0)) {
+        overdue++;
+      } else if (item.status === "DUE_SOON") {
+        dueSoon++;
+      } else if (item.status === "PENDING_APPROVAL") {
+        pending++;
+      } else if (item.status === "COMPLETED") {
+        completed++;
+      }
+    }
+
+    return {
+      all: groupedWorkItems.length,
+      overdue,
+      dueSoon,
+      pending,
+      completed
+    };
+  }, [groupedWorkItems]);
+
   // Lọc danh sách cho bảng 30 đầu việc
   const filteredTasks = groupedWorkItems.filter(task => {
     const matchesFilter = activeFilter === "ALL" 
@@ -600,31 +628,31 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                 onClick={() => setActiveFilter("ALL")}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${activeFilter === "ALL" ? "bg-white text-[#12211F] shadow-2xs font-semibold" : "text-[#5C6B68]"}`}
               >
-                Tất cả ({tasks.length})
+                Tất cả ({tableCounts.all})
               </button>
               <button
                 onClick={() => setActiveFilter("OVERDUE")}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${activeFilter === "OVERDUE" ? "bg-[#FBE6E4] text-[#B3261E] font-bold" : "text-[#5C6B68]"}`}
               >
-                Quá hạn ({stats.overdueCount})
+                Quá hạn ({tableCounts.overdue})
               </button>
               <button
                 onClick={() => setActiveFilter("DUE_SOON")}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${activeFilter === "DUE_SOON" ? "bg-[#FDF0DC] text-[#8A5108] font-bold" : "text-[#5C6B68]"}`}
               >
-                Sắp đến hạn ({stats.dueSoonCount})
+                Sắp đến hạn ({tableCounts.dueSoon})
               </button>
               <button
                 onClick={() => setActiveFilter("PENDING_APPROVAL")}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${activeFilter === "PENDING_APPROVAL" ? "bg-[#E4EEF8] text-[#1F4E79] font-bold" : "text-[#5C6B68]"}`}
               >
-                Chờ duyệt ({stats.pendingApprovalCount})
+                Chờ duyệt ({tableCounts.pending})
               </button>
               <button
                 onClick={() => setActiveFilter("COMPLETED")}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${activeFilter === "COMPLETED" ? "bg-[#E3EFEC] text-[#1F5C55] font-bold" : "text-[#5C6B68]"}`}
               >
-                Đã xong ({stats.completedCount})
+                Đã xong ({tableCounts.completed})
               </button>
             </div>
           </div>
