@@ -6,9 +6,10 @@ on:
     - cron: '5 10 * * *'
   workflow_dispatch: # Cho phép kích hoạt thủ công trên giao diện GitHub Actions
 
-# Cấp quyền ghi mã nguồn để GitHub Actions tự động commit giữ thức sau mỗi 25 ngày
+# Cấp quyền ghi mã nguồn và quản lý workflow để GitHub Actions tự động duy trì hoạt động
 permissions:
   contents: write
+  actions: write
 
 jobs:
   keep-alive:
@@ -18,15 +19,17 @@ jobs:
       - name: Ping Supabase Database Table
         run: |
           echo "Sending keep-alive query to Supabase..."
+          API_KEY="${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_iTgoowvYoE7G9jwbK1vY1w_EhaGfrA_' }}"
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
             -X GET "https://fkjmiatwdcgxdkqnwhgn.supabase.co/rest/v1/iso_users?select=count" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_iTgoowvYoE7G9jwbK1vY1w_EhaGfrA_' }}" \
+            -H "apikey: $API_KEY" \
+            -H "Authorization: Bearer $API_KEY" \
             -H "User-Agent: GitHub-Actions-KeepAlive")
           echo "Supabase Response Status Code: $RESPONSE"
           if [ "$RESPONSE" -ge 200 ] && [ "$RESPONSE" -lt 400 ]; then
             echo "✅ Supabase is active and responding successfully!"
           else
-            echo "⚠️ Warning: Response code was $RESPONSE"
+            echo "⚠️ Warning: Supabase returned status code $RESPONSE"
           fi
 
       - name: Ping Web Dashboard & Run Overdue Sweep at 17:05
@@ -42,15 +45,37 @@ jobs:
             echo "⚠️ Dashboard API returned status: $WEB_CODE"
           fi
 
-      # BƯỚC TỰ ĐỘNG CHỐNG DỪNG CHO GITHUB ACTIONS (FOREVER KEEP-ALIVE)
+      # BƯỚC TỰ ĐỘNG CHỐNG DỪNG CHO GITHUB ACTIONS (NATIVE - KHÔNG PHỤ THUỘC ACTION BÊN THỨ 3)
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Keep GitHub Actions Alive (Chống dừng sau 60 ngày)
-        uses: gautamkrishnar/keepalive-workflow@v2
-        with:
-          use_api: true
-          time_elapsed: 25 # Tự động tạo hoạt động giữ thức nếu repo không có commit sau 25 ngày
-          commit_message: "chore: keep alive GitHub Actions [skip ci]"
-          committer_username: "github-actions[bot]"
-          committer_email: "github-actions[bot]@users.noreply.github.com"
+      - name: Keep GitHub Actions Workflow Active (Native 24/7 Anti-Disabling)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Ensuring GitHub Actions scheduled workflow remains enabled..."
+          # 1. Gọi trực tiếp GitHub Actions REST API chính thức để giữ workflow luôn bật
+          curl -s -X PUT \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/supabase-keep-alive.yml/enable" || true
+          
+          # 2. Tự động kiểm tra thời gian commit gần nhất. Nếu repo không có commit sau 25 ngày, tự động tạo 1 commit giữ thức
+          LAST_COMMIT_TIME=$(git log -1 --format=%ct 2>/dev/null || echo 0)
+          CURRENT_TIME=$(date +%s)
+          DIFF_DAYS=$(( (CURRENT_TIME - LAST_COMMIT_TIME) / 86400 ))
+          echo "Days since last commit: $DIFF_DAYS days"
+
+          if [ "$DIFF_DAYS" -ge 25 ]; then
+            echo "Repository idle for >= 25 days, creating keep-alive commit..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            mkdir -p .github
+            echo "Keep alive ping at $(date -u)" > .github/keepalive.txt
+            git add .github/keepalive.txt
+            git commit -m "chore: keep alive GitHub Actions [skip ci]"
+            git push origin main
+            echo "✅ Keep-alive commit pushed successfully!"
+          else
+            echo "✅ Repository has active commits within 25 days ($DIFF_DAYS days ago). No dummy commit needed."
+          fi

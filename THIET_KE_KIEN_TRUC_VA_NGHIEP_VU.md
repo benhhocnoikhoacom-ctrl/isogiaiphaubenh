@@ -10,7 +10,7 @@
 - **Kho lưu trữ GitHub phụ:** `https://github.com/bsluongdinhtrung-hue/ISOGPB.git` (nhánh `main`)
 - **Cơ sở dữ liệu:** Supabase PostgreSQL (Project Ref: `fkjmiatwdcgxdkqnwhgn`)
 - **Hệ thống Tự động Giữ thức Vĩnh viễn 24/7 (Forever-Active Dual Engine Architecture):** Kiến trúc phòng thủ 2 lớp song song kết hợp giữa GitHub Actions và Vercel Cron Job chạy tự động lúc **17:05 chiều mỗi ngày (10:05 UTC)**:
-  1. *Lớp 1 (GitHub Actions):* Ping Supabase, gọi API Web Dashboard, và kích hoạt bot `keepalive-workflow@v2` tự động tạo commit giữ thức nhẹ sau 25 ngày, vô hiệu hóa triệt để chính sách tắt cron sau 60 ngày của GitHub.
+  1. *Lớp 1 (GitHub Actions):* Ping Supabase, gọi API Web Dashboard (quét quá hạn 17:05), và cơ chế Native 24/7 Anti-Disabling (gọi GitHub REST API kích hoạt duy trì workflow và tự động tạo commit giữ thức nhẹ sau 25 ngày bằng script nội bộ chuẩn GitHub, an toàn tuyệt đối và độc lập hoàn toàn khỏi thư viện bên thứ ba).
   2. *Lớp 2 (Vercel Cron Job - `vercel.json`):* Chạy độc lập trên hạ tầng đám mây Vercel lúc 10:05 UTC (17:05 VN) gọi vào `/api/cron/keep-alive`.
   3. *Tác vụ Kép tại API:* Vừa giữ thức Supabase và làm ấm Serverless Vercel (xóa Cold-start), vừa tự động kích hoạt quét quá hạn (Overdue Sweep) toàn bộ công việc trong ngày.
 - **Nguồn chuẩn nghiệp vụ (Single Source of Truth):** `INPUT_CHO_IT_eISO_MVP_v2_co_email.xlsx` và `Trao đổi ban đầu.txt`.
