@@ -9,7 +9,10 @@
 - **Kho lưu trữ GitHub chính:** `https://github.com/benhhocnoikhoacom-ctrl/isogiaiphaubenh.git` (nhánh `main`)
 - **Kho lưu trữ GitHub phụ:** `https://github.com/bsluongdinhtrung-hue/ISOGPB.git` (nhánh `main`)
 - **Cơ sở dữ liệu:** Supabase PostgreSQL (Project Ref: `fkjmiatwdcgxdkqnwhgn`)
-- **Cơ chế Chống Dừng CSDL (Keep-Alive Cron):** Cài đặt GitHub Actions tự động quét định kỳ vào lúc 07:00 sáng hàng ngày (`0 0 * * *`), ngăn ngừa tuyệt đối nguy cơ Supabase tự động tạm dừng (Paused) sau 7 ngày không có tương tác.
+- **Hệ thống Tự động Giữ thức Vĩnh viễn 24/7 (Forever-Active Dual Engine Architecture):** Kiến trúc phòng thủ 2 lớp song song kết hợp giữa GitHub Actions và Vercel Cron Job chạy tự động lúc **17:05 chiều mỗi ngày (10:05 UTC)**:
+  1. *Lớp 1 (GitHub Actions):* Ping Supabase, gọi API Web Dashboard, và kích hoạt bot `keepalive-workflow@v2` tự động tạo commit giữ thức nhẹ sau 25 ngày, vô hiệu hóa triệt để chính sách tắt cron sau 60 ngày của GitHub.
+  2. *Lớp 2 (Vercel Cron Job - `vercel.json`):* Chạy độc lập trên hạ tầng đám mây Vercel lúc 10:05 UTC (17:05 VN) gọi vào `/api/cron/keep-alive`.
+  3. *Tác vụ Kép tại API:* Vừa giữ thức Supabase và làm ấm Serverless Vercel (xóa Cold-start), vừa tự động kích hoạt quét quá hạn (Overdue Sweep) toàn bộ công việc trong ngày.
 - **Nguồn chuẩn nghiệp vụ (Single Source of Truth):** `INPUT_CHO_IT_eISO_MVP_v2_co_email.xlsx` và `Trao đổi ban đầu.txt`.
 - **Mục tiêu số 1:** Quản lý **ĐẦU VIỆC** theo tiêu chuẩn **ISO 15189** ở cấp quản lý của Trưởng khoa và cán bộ nhân viên: ai phụ trách, hạn chót, trạng thái, minh chứng thực hiện, cảnh báo chậm trễ, phê duyệt báo cáo.
 - **Quy tắc vàng:** Không thay thế hồ sơ ISO chi tiết hay hệ thống LIS/HIS; không nhập chi tiết từng máy móc hay từng ca bệnh phẩm/lam/block. Hệ thống đóng vai trò là **Trung tâm chỉ huy & Điều phối (Hub)**.
@@ -97,7 +100,7 @@
 
 ### B. Quy tắc sinh hạn tự động & Quét quá hạn toàn diện
 - **Công việc hàng ngày (Daily):** Tính các ngày làm việc Thứ 2 – Thứ 6 (tự động bỏ qua Thứ 7, Chủ nhật). Nếu nhân viên không làm ngày hôm trước hoặc các ngày trước đó, các task cũ đó sẽ được giữ nguyên và tự động chuyển thành `OVERDUE` (Quá hạn) khi bước sang ngày mới để kiểm soát nợ việc theo tiêu chuẩn ISO 15189.
-- **Cơ chế Quét Quá hạn Tự động (Comprehensive Overdue Sweep):** Mỗi khi hệ thống được nạp (hoặc khi cron keep-alive chạy lúc 07:00 sáng), hệ thống quét toàn bộ các task chưa hoàn thành (`status !== 'COMPLETED'`) trong CSDL Supabase. Nếu `Hôm nay > due_date`, hệ thống tự động đổi trạng thái sang `OVERDUE` và cập nhật tức thời vào Supabase, loại bỏ triệt để hiện tượng task cũ bị kẹt ở trạng thái `DUE_SOON`.
+- **Cơ chế Quét Quá hạn Tự động lúc 17:05 Chiều (Daily 17:05 Overdue Sweep):** Mỗi khi hệ thống được nạp hoặc khi cron tự động kích hoạt vào lúc **17:05 chiều hàng ngày (sau giờ làm việc hành chính 16:30)**, hệ thống quét toàn bộ các task chưa hoàn thành (`status !== 'COMPLETED'`) trong CSDL Supabase. Nếu `Hôm nay > due_date`, hệ thống tự động đổi trạng thái sang `OVERDUE` và cập nhật tức thời vào Supabase, loại bỏ triệt để hiện tượng task cũ bị kẹt ở trạng thái `DUE_SOON`. Điều này giúp Trưởng khoa có thể rà soát số liệu vào cuối ngày làm việc để đôn đốc nhóm kịp thời.
 - **Công việc hàng tháng kỳ `M/YYYY`:** Hạn là ngày 03, 05 hoặc 10 của tháng `(M+1)/YYYY`.
 - **Công việc hàng quý:** Hạn là ngày 05 hoặc 10 của tháng đầu quý kế tiếp.
 - **Công việc hàng năm:** Hạn cố định theo lịch khoa (31/10, 30/11, 15/12).

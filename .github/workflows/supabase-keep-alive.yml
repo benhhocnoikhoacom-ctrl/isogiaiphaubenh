@@ -1,25 +1,56 @@
-name: Supabase Keep-Alive Ping
+name: Supabase & Web Keep-Alive (Forever Active 24/7)
 
 on:
   schedule:
-    # Chạy tự động mỗi ngày vào lúc 00:00 UTC (07:00 sáng giờ Việt Nam)
-    - cron: '0 0 * * *'
-  workflow_dispatch: # Cho phép bấm chạy thủ công kiểm tra bất kỳ lúc nào
+    # Chạy mỗi ngày vào lúc 17:05 chiều giờ Việt Nam (10:05 UTC)
+    - cron: '5 10 * * *'
+  workflow_dispatch: # Cho phép kích hoạt thủ công trên giao diện GitHub Actions
+
+# Cấp quyền ghi mã nguồn để GitHub Actions tự động commit giữ thức sau mỗi 25 ngày
+permissions:
+  contents: write
 
 jobs:
-  ping-supabase:
+  keep-alive:
+    name: Ping Supabase, Web Dashboard & Overdue Sweep
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase Database via PostgREST
+      - name: Ping Supabase Database Table
         run: |
-          echo "Sending keep-alive ping to Supabase..."
+          echo "Sending keep-alive query to Supabase..."
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
             -X GET "https://fkjmiatwdcgxdkqnwhgn.supabase.co/rest/v1/iso_users?select=count" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_iTgoowvYoE7G9jwbK1vY1w_EhaGfrA_' }}" \
             -H "User-Agent: GitHub-Actions-KeepAlive")
-          echo "HTTP Response Status Code: $RESPONSE"
-          if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 206 ]; then
-            echo "Supabase is active and healthy!"
+          echo "Supabase Response Status Code: $RESPONSE"
+          if [ "$RESPONSE" -ge 200 ] && [ "$RESPONSE" -lt 400 ]; then
+            echo "✅ Supabase is active and responding successfully!"
           else
-            echo "Warning: Response code was $RESPONSE"
+            echo "⚠️ Warning: Response code was $RESPONSE"
           fi
+
+      - name: Ping Web Dashboard & Run Overdue Sweep at 17:05
+        run: |
+          echo "Sending keep-alive and sweep trigger to Web Dashboard..."
+          WEB_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET "https://isogiaiphaubenh.bstrung.vn/api/cron/keep-alive" \
+            -H "User-Agent: GitHub-Actions-KeepAlive")
+          echo "Dashboard Cron API Status Code: $WEB_CODE"
+          if [ "$WEB_CODE" -ge 200 ] && [ "$WEB_CODE" -lt 400 ]; then
+            echo "✅ Dashboard API is warm and 17:05 Overdue Sweep completed!"
+          else
+            echo "⚠️ Dashboard API returned status: $WEB_CODE"
+          fi
+
+      # BƯỚC TỰ ĐỘNG CHỐNG DỪNG CHO GITHUB ACTIONS (FOREVER KEEP-ALIVE)
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Keep GitHub Actions Alive (Chống dừng sau 60 ngày)
+        uses: gautamkrishnar/keepalive-workflow@v2
+        with:
+          use_api: true
+          time_elapsed: 25 # Tự động tạo hoạt động giữ thức nếu repo không có commit sau 25 ngày
+          commit_message: "chore: keep alive GitHub Actions [skip ci]"
+          committer_username: "github-actions[bot]"
+          committer_email: "github-actions[bot]@users.noreply.github.com"
