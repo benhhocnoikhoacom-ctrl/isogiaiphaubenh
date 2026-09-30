@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { uploadFileToDrive } from "@/lib/google-drive";
 import { calculateTaskStatus, getVietnamToday, clearTasksCache } from "@/lib/task-engine";
@@ -12,8 +13,8 @@ export async function submitTaskCompletion(formData: FormData) {
   try {
     const taskId = formData.get("taskId") as string;
     const completedDate = (formData.get("completedDate") as string) || getVietnamToday();
-    const note = (formData.get("note") as string) || "";
-    let evidenceUrl = (formData.get("evidenceUrl") as string) || "";
+    const note = ((formData.get("note") as string) || "").trim();
+    let evidenceUrl = ((formData.get("evidenceUrl") as string) || "").trim();
     const evidenceFile = formData.get("evidenceFile") as File | null;
     const userEmail = (formData.get("userEmail") as string) || "system";
     const userName = (formData.get("userName") as string) || "Nhân viên";
@@ -32,6 +33,38 @@ export async function submitTaskCompletion(formData: FormData) {
       return { success: false, error: "Không tìm thấy công việc này trong hệ thống." };
     }
 
+    // Kiểm tra phân quyền máy chủ: Chỉ người được giao hoặc Trưởng khoa/Admin mới được nộp
+    const session = await auth();
+    const sessionEmail = session?.user?.email?.toLowerCase();
+    const sessionRole = session?.user?.role;
+    const sessionName = session?.user?.name;
+
+    const isAssignee = sessionEmail && taskData.assignee_id && taskData.assignee_id.toLowerCase() === sessionEmail;
+    const isAdmin = sessionRole === "ADMIN" || sessionEmail === "bsluongdinhtrung@gmail.com" || sessionEmail === "nguyethmu@gmail.com";
+
+    const cleanAssignee = (taskData.assignee_name || "").toLowerCase().replace(/^(bs\.|ktv\.|bác sĩ|trưởng khoa)\s*/i, "").trim();
+    const cleanUser = (sessionName || userName || "").toLowerCase().replace(/^(bs\.|ktv\.|bác sĩ|trưởng khoa)\s*/i, "").trim();
+    const isNameMatch = cleanAssignee.length > 0 && (cleanAssignee.includes(cleanUser) || cleanUser.includes(cleanAssignee));
+
+    if (!isAssignee && !isAdmin && !isNameMatch) {
+      return { 
+        success: false, 
+        error: `Bạn không được phân công thực hiện đầu việc này. Đầu việc được giao cho: ${taskData.assignee_name}.` 
+      };
+    }
+
+    // Bắt buộc có ít nhất 1 minh chứng thực chất
+    const hasFile = evidenceFile && evidenceFile.size > 0;
+    const hasLink = Boolean(evidenceUrl);
+    const hasNote = note.length >= 6;
+
+    if (!hasFile && !hasLink && !hasNote) {
+      return {
+        success: false,
+        error: "Vui lòng đính kèm ít nhất 1 ảnh chụp sổ ghi/tài liệu, hoặc dán link Drive, hoặc ghi chú diễn giải (tối thiểu 6 ký tự)."
+      };
+    }
+
     // Lấy cấu hình của đầu việc để biết có cần duyệt không
     const { data: itemData } = await supabaseAdmin
       .from("iso_work_items")
@@ -46,17 +79,19 @@ export async function submitTaskCompletion(formData: FormData) {
 
     // Nếu người dùng tải file lên
     if (evidenceFile && evidenceFile.size > 0) {
+      const arrayBuffer = await evidenceFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      evidenceFileName = evidenceFile.name;
+
       try {
-        const arrayBuffer = await evidenceFile.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
         const fileName = `${taskData.item_code}_${taskData.period}_${evidenceFile.name}`;
         const uploadResult = await uploadFileToDrive(buffer, fileName, evidenceFile.type);
         evidenceUrl = uploadResult.webViewLink;
-        evidenceFileName = evidenceFile.name;
       } catch (uploadErr: any) {
-        console.warn("Upload file to drive warning:", uploadErr?.message);
-        if (!evidenceUrl) {
-          evidenceFileName = `${evidenceFile.name} (Chưa đồng bộ Drive)`;
+        console.warn("Upload file to drive warning, using direct inline fallback:", uploadErr?.message);
+        // Lưu trữ fallback trực tiếp (base64 Data URL) để Trưởng khoa xem được ngay
+        if (evidenceFile.type.startsWith("image/")) {
+          evidenceUrl = `data:${evidenceFile.type};base64,${buffer.toString("base64")}`;
         }
       }
     }

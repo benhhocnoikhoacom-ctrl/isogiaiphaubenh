@@ -113,6 +113,11 @@
 ### 1. Dashboard Tổng quan (`/`)
 - Mọi thành viên đều xem được.
 - **Top Bar:** 4 thẻ KPI (Quá hạn, Sắp đến hạn, Đã hoàn thành, Tỷ lệ tuân thủ %). Thanh Header trên cùng được dọn sạch, loại bỏ hoàn toàn các link module lẻ để giữ giao diện chuẩn mực, tinh gọn.
+- **Khu vực Phê duyệt Trực quan cho Trưởng khoa (Thực chất, Chống duyệt hình thức):**
+  - Hiển thị trực tiếp ảnh thu nhỏ (Thumbnail) của sổ ghi chép / tài liệu minh chứng ngay trên thẻ chờ duyệt của Trưởng khoa.
+  - Tích hợp bộ xem ảnh **Lightbox Modal**: Trưởng khoa bấm vào ảnh là phóng to toàn màn hình sắc nét để đọc từng dòng số liệu ghi chép thực tế.
+  - Hiển thị thẻ nút bấm xanh lá mở liên kết Google Drive / SharePoint khi nhân viên đính kèm link ngoài.
+  - Tự động gắn cờ cảnh báo đỏ nếu nhân viên nộp form trống: `⚠️ Không có ảnh/link minh chứng` kèm khuyến nghị bấm "Yêu cầu bổ sung", loại bỏ hoàn toàn hiện tượng duyệt hình thức.
 - **Bảng Điểm nghẽn:** Đúng 7 cột chuẩn (`STT`, `Mã`, `Đầu việc quản lý`, `Phụ trách`, `Hạn hoàn thành (kèm số ngày trễ)`, `Trạng thái`, `Thao tác` có nút xem minh chứng trực tiếp). Ưu tiên việc Quá hạn lên trên đầu. Mọi ngày trễ của công việc hàng ngày đều được liệt kê chi tiết tại đây để Trưởng khoa đôn đốc.
 - **Thẻ Tiến độ Nhân sự:** Thống kê khối lượng từng người, bấm vào lọc ra ngay công việc của người đó (BS. Đào Thị Nguyệt ra đúng 2 việc).
 - **Bảng 30 Đầu việc Quản lý Chất lượng (ISO 15189):**
@@ -129,6 +134,11 @@
 
 ### 2. Trang "Đầu việc của tôi" & Báo cáo (`/my-tasks`)
 - Lọc chính xác chỉ hiển thị các công việc được giao cho cá nhân đang đăng nhập.
+- **Cơ chế Khóa mờ nút nộp báo cáo (Đúng người đúng việc):**
+  - Ở tab "Toàn khoa" hoặc khi xem công việc của người khác: Nút "Báo cáo hoàn thành" tự động **bị làm mờ (disabled, opacity-60, cursor-not-allowed)**, có biểu tượng ổ khóa 🔒 và ghi chú: `Chỉ phân công cho [Tên người phụ trách]`. Người không có phận sự không thể bấm vào nộp thay.
+  - Chỉ người phụ trách chính thức (hoặc Trưởng khoa/Admin) mới có quyền mở form và nộp báo cáo.
+  - **Bảo vệ hai lớp tại Server:** Backend Server Action đối chiếu session đăng nhập với người được phân công của task; từ chối và cảnh báo nếu có hành vi nộp thay trái phép.
+  - **Ràng buộc đầu vào tối thiểu (Chống nộp trống):** Bắt buộc phải có ít nhất 1 ảnh/tệp, link Drive, hoặc ghi chú cụ thể $\ge 6$ ký tự trước khi bấm nộp.
 - Thao tác nộp báo cáo: Chọn ngày hoàn thành, viết ghi chú, dán link hoặc tải minh chứng.
 - **Hỗ trợ đầy đủ các nguồn tải ảnh trên điện thoại (Mobile Upload Options):**
   - Cho phép người dùng tùy chọn: Chụp ảnh trực tiếp bằng Camera, chọn ảnh có sẵn từ Thư viện ảnh (Photo Library), hoặc chọn tệp PDF/Word/Excel. Không ép buộc chỉ mở Camera.

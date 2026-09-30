@@ -18,12 +18,21 @@ import {
   CheckSquare,
   Link as LinkIcon,
   Trash2,
-  Edit2
+  Edit2,
+  Image as ImageIcon,
+  Maximize2,
+  X
 } from "lucide-react";
 import { TaskRecord, DashboardStats, StaffPerformance, TaskStatusCode, ISO_DRIVE_FOLDER_URL } from "@/types/iso";
 import { approveTask, rejectTask, updateWorkItemExternalLink } from "@/app/actions/task-actions";
 import { useSession } from "next-auth/react";
 import { getVietnamToday, parseDateToYMD } from "@/lib/date-utils";
+
+function isImageUrl(url?: string): boolean {
+  if (!url) return false;
+  if (url.startsWith("data:image/")) return true;
+  return /\.(jpg|jpeg|png|webp|gif|bmp|svg)(\?.*)?$/i.test(url);
+}
 
 interface Props {
   initialTasks: TaskRecord[];
@@ -43,6 +52,7 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [rejectionModalTask, setRejectionModalTask] = useState<TaskRecord | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
   // Modal gắn / sửa / xóa link ngoài
   const [editingLinkTask, setEditingLinkTask] = useState<TaskRecord | null>(null);
@@ -365,26 +375,95 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                     <span className="text-xs font-bold font-mono text-[#1F5C55] bg-[#E3EFEC] px-2 py-0.5 rounded">
                       {task.itemCode}
                     </span>
-                    <span className="text-xs text-[#5C6B68]">Người làm: <strong className="text-[#12211F]">{task.assigneeName}</strong></span>
+                    <span className="text-xs text-[#5C6B68]">
+                      Người làm: <strong className="text-[#12211F]">{task.assigneeName}</strong>
+                      {task.completedDate && (
+                        <span className="ml-1.5 text-[11px] font-mono text-[#1F5C55]">({task.completedDate})</span>
+                      )}
+                    </span>
                   </div>
                   <h4 className="font-semibold text-sm text-[#12211F]">{task.itemName}</h4>
+
+                  {/* Ghi chú kết quả của nhân viên */}
                   {task.note && (
-                    <p className="text-xs text-[#5C6B68] mt-1 italic bg-[#F7F8F6] p-2 rounded border border-[#DDE3E0]">
-                      "{task.note}"
-                    </p>
+                    <div className="mt-2 text-xs text-[#12211F] bg-[#F7F8F6] p-2.5 rounded-lg border border-[#DDE3E0]">
+                      <span className="font-semibold text-[#5C6B68] block text-[10px] uppercase font-mono mb-0.5">
+                        Ghi chú của nhân viên:
+                      </span>
+                      <p className="italic">"{task.note}"</p>
+                    </div>
                   )}
-                  {task.evidenceUrl && (
-                    <div className="mt-2">
+
+                  {/* Minh chứng: Ảnh xem trước trực quan */}
+                  {isImageUrl(task.evidenceUrl) ? (
+                    <div className="mt-3 p-2 rounded-lg bg-[#F7F8F6] border border-[#DDE3E0]">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] font-semibold text-[#1F5C55] flex items-center gap-1">
+                          <ImageIcon className="h-3.5 w-3.5" />
+                          Ảnh minh chứng sổ ghi / tài liệu:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewImage({ url: task.evidenceUrl!, title: `${task.itemCode} - ${task.itemName}` })}
+                          className="text-[11px] font-semibold text-[#1F5C55] hover:underline flex items-center gap-0.5"
+                        >
+                          <Maximize2 className="h-3 w-3" />
+                          <span>Phóng to</span>
+                        </button>
+                      </div>
+                      <div 
+                        onClick={() => setPreviewImage({ url: task.evidenceUrl!, title: `${task.itemCode} - ${task.itemName}` })}
+                        className="relative h-44 w-full rounded-md overflow-hidden bg-black/5 cursor-pointer group border border-[#DDE3E0]"
+                      >
+                        <img 
+                          src={task.evidenceUrl} 
+                          alt="Minh chứng" 
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
+                          <Maximize2 className="h-4 w-4" />
+                          <span>Bấm để xem ảnh chi tiết</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : task.evidenceUrl ? (
+                    /* Minh chứng: Link Google Drive hoặc tài liệu */
+                    <div className="mt-3 p-2.5 rounded-lg bg-[#E3EFEC] border border-[#C5DDD7] flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <HardDrive className="h-4 w-4 text-[#1F5C55] shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-[#1F5C55] truncate">
+                            {task.evidenceFileName || "Tài liệu minh chứng Drive"}
+                          </p>
+                          <p className="text-[10px] text-[#5C6B68] truncate font-mono">{task.evidenceUrl}</p>
+                        </div>
+                      </div>
                       <a
                         href={task.evidenceUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-[#1F5C55] hover:underline font-medium"
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1F5C55] text-white text-[11px] font-semibold hover:bg-[#16443F] transition-colors"
                       >
-                        <FileText className="h-3.5 w-3.5" />
-                        <span>Xem minh chứng ({task.evidenceFileName || "Tài liệu Drive"})</span>
+                        <span>Mở Drive</span>
                         <ExternalLink className="h-3 w-3" />
                       </a>
+                    </div>
+                  ) : !task.note ? (
+                    /* Cảnh báo nộp hoàn toàn trống */
+                    <div className="mt-2.5 p-2.5 rounded-lg bg-[#FDF3F1] border border-[#F5C4B8] flex items-start gap-2 text-[#99281A]">
+                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div className="text-xs">
+                        <strong className="font-semibold">⚠️ Không có ảnh/link minh chứng:</strong>
+                        <p className="text-[11px] text-[#99281A]/80 mt-0.5">
+                          Nhân viên nộp trống, chưa đính kèm ảnh sổ ghi hay tài liệu. Trưởng khoa nên bấm <em>Yêu cầu bổ sung</em> để nhân viên cập nhật lại.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Chỉ có ghi chú */
+                    <div className="mt-2 p-2 rounded bg-[#FFFBEB] border border-[#FDE68A] text-[11px] text-[#92400E] flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      <span>Chỉ có ghi chú diễn giải, chưa đính kèm tệp/ảnh minh chứng.</span>
                     </div>
                   )}
                 </div>
@@ -912,6 +991,51 @@ export function ExecutiveDashboard({ initialTasks, initialStats, staffPerformanc
                   {isSavingLink ? "Đang lưu..." : "Lưu link"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Xem Ảnh Minh Chứng Toàn Màn Hình (Lightbox) */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div 
+            className="relative max-w-4xl w-full max-h-[92vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#DDE3E0] bg-[#F7F8F6]">
+              <div className="flex items-center gap-2 min-w-0">
+                <ImageIcon className="h-4 w-4 text-[#1F5C55] shrink-0" />
+                <h3 className="text-xs font-bold text-[#12211F] truncate">{previewImage.title}</h3>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={previewImage.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-[#1F5C55] hover:underline font-semibold flex items-center gap-1 px-2.5 py-1 rounded hover:bg-[#E3EFEC]"
+                >
+                  <span>Mở tab mới</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewImage(null)}
+                  className="p-1 rounded-md text-[#5C6B68] hover:text-[#12211F] hover:bg-[#DDE3E0] transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-3 overflow-auto flex items-center justify-center bg-[#0F172A] min-h-[300px]">
+              <img 
+                src={previewImage.url} 
+                alt={previewImage.title} 
+                className="max-h-[75vh] w-auto max-w-full object-contain rounded shadow-lg"
+              />
             </div>
           </div>
         </div>

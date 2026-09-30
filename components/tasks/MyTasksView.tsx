@@ -13,7 +13,8 @@ import {
   HardDrive,
   Check,
   Calendar,
-  Info
+  Info,
+  Lock
 } from "lucide-react";
 import { TaskRecord, TaskStatusCode, WorkItem, ISO_DRIVE_FOLDER_URL } from "@/types/iso";
 import { submitTaskCompletion, createEventTask } from "@/app/actions/task-actions";
@@ -33,6 +34,7 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
   const [note, setNote] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modal tạo việc phát sinh
@@ -68,13 +70,20 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
   async function handleSubmitCompletion(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedTaskForSubmit) return;
+    setSubmitError("");
+
+    // Ràng buộc tối thiểu: phải có file ảnh/tài liệu, hoặc link Drive, hoặc ghi chú cụ thể >= 6 ký tự
+    if (!evidenceFile && !evidenceUrl.trim() && note.trim().length < 6) {
+      setSubmitError("Vui lòng đính kèm ít nhất 1 ảnh chụp sổ ghi/file, HOẶC dán link Drive, HOẶC ghi chú kết quả cụ thể (tối thiểu 6 ký tự).");
+      return;
+    }
 
     setIsSubmitting(true);
     const formData = new FormData();
     formData.append("taskId", selectedTaskForSubmit.taskId);
     formData.append("completedDate", completedDate);
-    formData.append("note", note);
-    formData.append("evidenceUrl", evidenceUrl);
+    formData.append("note", note.trim());
+    formData.append("evidenceUrl", evidenceUrl.trim());
     formData.append("userEmail", userEmail);
     formData.append("userName", userName);
     if (evidenceFile) {
@@ -88,16 +97,17 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
         ...t,
         status: newStatus,
         completedDate,
-        note,
-        evidenceUrl: evidenceUrl || t.evidenceUrl,
+        note: note.trim(),
+        evidenceUrl: evidenceUrl.trim() || t.evidenceUrl,
         evidenceFileName: evidenceFile ? evidenceFile.name : t.evidenceFileName
       } : t));
       setSelectedTaskForSubmit(null);
       setNote("");
       setEvidenceUrl("");
       setEvidenceFile(null);
+      setSubmitError("");
     } else {
-      alert(res.error || "Có lỗi xảy ra khi nộp báo cáo.");
+      setSubmitError(res.error || "Có lỗi xảy ra khi nộp báo cáo.");
     }
     setIsSubmitting(false);
   }
@@ -310,6 +320,16 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
                     <Clock className="h-4 w-4 animate-spin" />
                     <span>Đã nộp • Chờ Trưởng khoa duyệt</span>
                   </div>
+                ) : !isMyTask(task) && session?.user?.role !== "ADMIN" ? (
+                  <button
+                    type="button"
+                    disabled
+                    title={`Đầu việc thuộc trách nhiệm của ${task.assigneeName}`}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-[#EDF2F0] text-[#718581] border border-[#D5DFDC] text-xs font-medium opacity-60 cursor-not-allowed select-none"
+                  >
+                    <Lock className="h-3.5 w-3.5 text-[#718581]" />
+                    <span className="truncate">Chỉ phân công cho {task.assigneeName}</span>
+                  </button>
                 ) : (
                   <button
                     onClick={() => {
@@ -318,6 +338,7 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
                       setNote("");
                       setEvidenceUrl("");
                       setEvidenceFile(null);
+                      setSubmitError("");
                     }}
                     className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-[#1F5C55] text-white text-xs font-semibold hover:bg-[#16443F] transition-colors shadow-2xs"
                   >
@@ -346,6 +367,13 @@ export function MyTasksView({ allTasks, allWorkItems }: Props) {
                 Kỳ theo dõi: {selectedTaskForSubmit.period} • Hạn chốt: {selectedTaskForSubmit.dueDate}
               </p>
             </div>
+
+            {submitError && (
+              <div className="p-3 rounded-lg bg-[#FDF3F1] border border-[#F5C4B8] text-xs text-[#99281A] font-medium flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-[#99281A]" />
+                <span>{submitError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSubmitCompletion} className="space-y-4">
               {/* Ngày hoàn thành */}
